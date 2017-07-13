@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -34,7 +34,7 @@ Requires:       kmodtool >= 1-9
 
 # this should track in all stuff that is normally needed to compile modules:
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
-Requires:       gzip perl make sed tar unzip util-linux which rpm-build
+Requires:       gzip perl-interpreter make sed tar unzip util-linux which rpm-build
 
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
@@ -132,6 +132,10 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Thu Jul 13 2017 Petr Pisar <ppisar@redhat.com> - 0.5.6-8
+- perl dependency renamed to perl-interpreter
+  <https://fedoraproject.org/wiki/Changes/perl_Package_to_Install_Core_Modules>
+
 * Thu May  4 2017 Hans de Goede <hdegoede@redhat.com> - 0.5.6-7
 - "udevadm trigger" may have bad side-effects (rhbz#454407) instead
   look for modalias files under /sys/devices and call modprobe directly
