@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -132,6 +132,9 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Wed Jul 26 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
+
 * Thu Jul 13 2017 Petr Pisar <ppisar@redhat.com> - 0.5.6-8
 - perl dependency renamed to perl-interpreter
   <https://fedoraproject.org/wiki/Changes/perl_Package_to_Install_Core_Modules>
