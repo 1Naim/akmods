@@ -40,7 +40,14 @@ Requires:       gzip perl-interpreter make sed tar unzip util-linux which rpm-bu
 # kernel-devel or kernel-PAE-devel
 Requires:       kernel-devel-uname-r
 %if 0%{?fedora}
-Suggests:       kernel-devel
+Suggests:       (kernel-debug-devel if kernel-debug)
+Suggests:       (kernel-devel if kernel)
+Suggests:       (kernel-lpae-devel if kernel-lpae)
+Suggests:       (kernel-PAE-devel if kernel-PAE)
+Suggests:       (kernel-PAEdebug-devel if kernel-PAEdebug)
+# Theses are from planetccrma-core or rhel-7-server-rt-rpms
+Suggests:       (kernel-rt-devel if kernel-rt)
+Suggests:       (kernel-rtPAE-devel if kernel-rtPAE)
 %endif
 
 # we create a special user that used by akmods to build kmod packages
