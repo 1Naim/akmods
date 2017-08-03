@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        10%{?dist}
+Release:        11%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -36,10 +36,10 @@ Requires:       kmodtool >= 1-9
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
 Requires:       gzip make sed tar unzip util-linux which rpm-build
 
+%if 0%{?fedora}
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
 Requires:       kernel-devel-uname-r
-%if 0%{?fedora}
 Suggests:       (kernel-debug-devel if kernel-debug)
 Suggests:       (kernel-devel if kernel)
 Suggests:       (kernel-lpae-devel if kernel-lpae)
@@ -48,6 +48,9 @@ Suggests:       (kernel-PAEdebug-devel if kernel-PAEdebug)
 # Theses are from planetccrma-core or rhel-7-server-rt-rpms
 Suggests:       (kernel-rt-devel if kernel-rt)
 Suggests:       (kernel-rtPAE-devel if kernel-rtPAE)
+%else
+# There is no much variant there, so using a sane default
+Requires:       kernel-devel
 %endif
 
 # we create a special user that used by akmods to build kmod packages
@@ -165,6 +168,9 @@ fi
 
 
 %changelog
+* Thu Aug 03 2017 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-11
+- Rework kernel-devel requires on el
+
 * Thu Aug 03 2017 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-10
 - Enable suggests on fedora
 - Add back el6 support in spec
