@@ -34,7 +34,7 @@ Requires:       kmodtool >= 1-9
 
 # this should track in all stuff that is normally needed to compile modules:
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
-Requires:       gzip perl-interpreter make sed tar unzip util-linux which rpm-build
+Requires:       gzip make sed tar unzip util-linux which rpm-build
 
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
