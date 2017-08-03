@@ -53,11 +53,13 @@ Suggests:       (kernel-rtPAE-devel if kernel-rtPAE)
 # we create a special user that used by akmods to build kmod packages
 Requires(pre):  shadow-utils
 
+%if 0%{?fedora} || 0%{?rhel} > 6
 # systemd unit requirements.
 BuildRequires:  systemd
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
+%endif
 
 
 %description
@@ -79,19 +81,25 @@ cp -p %{SOURCE9} %{SOURCE10} .
 mkdir -p %{buildroot}%{_usrsrc}/akmods \
          %{buildroot}%{_sbindir} \
          %{buildroot}%{_sysconfdir}/kernel/postinst.d \
-         %{buildroot}%{_unitdir} \
-         %{buildroot}%{_localstatedir}/cache/akmods \
-         %{buildroot}%{_presetdir}
+         %{buildroot}%{_localstatedir}/cache/akmods
+
 install -pm 0755 %{SOURCE1} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE2} %{buildroot}%{_sbindir}/
-install -pm 0755 %{SOURCE7} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE5} %{buildroot}%{_sysconfdir}/kernel/postinst.d/
-install -pm 0644 %{SOURCE8} %{buildroot}%{_unitdir}/
 
+%if 0%{?fedora} || 0%{?rhel} > 6
+mkdir -p \
+         %{buildroot}%{_unitdir} \
+         %{buildroot}%{_presetdir}
 sed "s|@SERVICE@|display-manager.service|" %{SOURCE6} >\
     %{buildroot}%{_unitdir}/akmods.service
-
 install -pm 0644 %{SOURCE0} %{buildroot}%{_presetdir}/
+install -pm 0755 %{SOURCE7} %{buildroot}%{_sbindir}/
+install -pm 0644 %{SOURCE8} %{buildroot}%{_unitdir}/
+%else
+mkdir -p %{buildroot}%{_initddir}/
+install -pm 0755 %{SOURCE4} %{buildroot}%{_initddir}/akmods
+%endif
 
 # Generate and install man pages.
 mkdir -p %{buildroot}%{_mandir}/man1
@@ -110,6 +118,7 @@ getent passwd akmods >/dev/null || \
 useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
     -c "User is used by akmods to build akmod packages" akmods
 
+%if 0%{?fedora} || 0%{?rhel} > 6
 %post
 %systemd_post akmods.service
 %systemd_post akmods-shutdown.service
@@ -121,18 +130,33 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 %postun
 %systemd_postun akmods.service
 %systemd_postun akmods-shutdown.service
+%else
+%post
+if [ $1 -eq 1 ] ; then
+  /sbin/chkconfig --add akmods ||:
+fi
+
+%preun
+if [ $1 -eq 0 ] ; then
+  /sbin/chkconfig --del akmods || :
+fi
+%endif
 
 
 %files
 %doc README
 %license LICENSE
 %{_sbindir}/akmodsbuild
-%{_sbindir}/akmods-shutdown
 %{_sbindir}/akmods
 %{_sysconfdir}/kernel/postinst.d/akmodsposttrans
+%if 0%{?fedora} || 0%{?rhel} > 6
 %{_unitdir}/akmods.service
+%{_sbindir}/akmods-shutdown
 %{_unitdir}/akmods-shutdown.service
 %{_presetdir}/95-akmods.preset
+%else
+%{_initddir}/akmods
+%endif
 %{_usrsrc}/akmods
 %attr(-,akmods,akmods) %{_localstatedir}/cache/akmods
 %{_mandir}/man1/*
