@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        9%{?dist}
+Release:        10%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -165,6 +165,11 @@ fi
 
 
 %changelog
+* Thu Aug 03 2017 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-10
+- Enable suggests on fedora
+- Add back el6 support in spec
+- Add Requires elfutils-libelf-devel
+
 * Wed Jul 26 2017 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-9
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
 
