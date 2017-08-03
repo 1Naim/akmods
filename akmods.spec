@@ -59,6 +59,8 @@ BuildRequires:  systemd
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
+# Optional but good to have on recent kernel
+Requires: elfutils-libelf-devel
 %endif
 
 
