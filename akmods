@@ -425,7 +425,9 @@ check_kmods()
 	# after udev and systemd-modules-load.service have tried to load modules
 	if [[ "${somesucceeded}" ]] && [ ${this_kernelver} = "$(uname -r)" ]; then
 		find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
-		systemctl restart systemd-modules-load.service
+                if [ -f /usr/bin/systemctl ] ; then
+			systemctl restart systemd-modules-load.service
+		fi
 	fi
 }
 
