@@ -26,6 +26,6 @@
 echo "Building modules for all installed kernels."
 for kernel in /usr/src/kernels/*; do
 	kernel=$(basename $kernel)
-	/usr/sbin/akmods --force --kernels $kernel
+	/usr/sbin/akmods --kernels $kernel
 done
 
