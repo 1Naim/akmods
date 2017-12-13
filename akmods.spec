@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        11%{?dist}
+Release:        12%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -18,13 +18,16 @@ Source7:        akmods-shutdown
 Source8:        akmods-shutdown.service
 Source9:        README
 Source10:       LICENSE
+Source11:       akmods@.service
 
 BuildArch:      noarch
 
 BuildRequires:  help2man
 
 # not picked up automatically
+%if 0%{?rhel} == 6
 Requires:       %{_bindir}/nohup
+%endif
 Requires:       %{_bindir}/flock
 Requires:       %{_bindir}/time
 
@@ -101,6 +104,7 @@ sed "s|@SERVICE@|display-manager.service|" %{SOURCE6} >\
 install -pm 0644 %{SOURCE0} %{buildroot}%{_presetdir}/
 install -pm 0755 %{SOURCE7} %{buildroot}%{_sbindir}/
 install -pm 0644 %{SOURCE8} %{buildroot}%{_unitdir}/
+install -pm 0644 %{SOURCE11} %{buildroot}%{_unitdir}/
 %else
 mkdir -p %{buildroot}%{_initddir}/
 install -pm 0755 %{SOURCE4} %{buildroot}%{_initddir}/akmods
@@ -126,14 +130,17 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 %if 0%{?fedora} || 0%{?rhel} > 6
 %post
 %systemd_post akmods.service
+%systemd_post akmods@.service
 %systemd_post akmods-shutdown.service
 
 %preun
 %systemd_preun akmods.service
+%systemd_preun akmods@.service
 %systemd_preun akmods-shutdown.service
 
 %postun
 %systemd_postun akmods.service
+%systemd_postun akmods@.service
 %systemd_postun akmods-shutdown.service
 %else
 %post
@@ -156,6 +163,7 @@ fi
 %{_sysconfdir}/kernel/postinst.d/akmodsposttrans
 %if 0%{?fedora} || 0%{?rhel} > 6
 %{_unitdir}/akmods.service
+%{_unitdir}/akmods@.service
 %{_sbindir}/akmods-shutdown
 %{_unitdir}/akmods-shutdown.service
 %{_presetdir}/95-akmods.preset
@@ -168,6 +176,9 @@ fi
 
 
 %changelog
+* Wed Dec 13 2017 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-12
+- Update kernel posttrans method - rhbz#1518401
+
 * Thu Aug 03 2017 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-11
 - Rework kernel-devel requires on el
 
