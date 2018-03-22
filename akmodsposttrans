@@ -26,7 +26,7 @@
 #
 
 # just check in case a user calls this directly
-if [[ ! -w / ]]; then
+if [[ ! -w /var ]]; then
 	echo "Needs to run as root to be able to install rpms." >&2
 	exit 4
 fi

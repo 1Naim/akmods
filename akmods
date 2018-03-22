@@ -164,7 +164,7 @@ init ()
 	fi
 
 	# needs root permissions
-	if [[ ! -w / ]]; then
+	if [[ ! -w /var ]]; then
 		echo -n "Needs to run as root to be able to install rpms." >&2
 		echo_failure; echo; exit 1
 	fi

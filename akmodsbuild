@@ -40,7 +40,7 @@ init ()
 {
 	## startup checks
 	# prevent root-usage
-	if [[ -w / ]]; then
+	if [[ -w /var ]]; then
 		echo "ERROR: Not to be used as root; start as user or '${myprog}' instead." >&2
 		exit 1 
 	fi
