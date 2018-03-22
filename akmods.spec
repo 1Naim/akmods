@@ -166,7 +166,12 @@ fi
 %{_unitdir}/akmods@.service
 %{_sbindir}/akmods-shutdown
 %{_unitdir}/akmods-shutdown.service
+# akmods was enabled in the default preset by f28
+%if 0%{?fedora} && 0%{?fedora} >= 28
+%exclude %{_presetdir}/95-akmods.preset
+%else
 %{_presetdir}/95-akmods.preset
+%endif
 %else
 %{_initddir}/akmods
 %endif
