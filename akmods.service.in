@@ -1,5 +1,6 @@
 [Unit]
 Description=Builds and install new kmods from akmod packages
+ConditionPathExists=!/run/ostree-booted
 Before=@SERVICE@
 
 [Service]
