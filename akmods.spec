@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        13%{?dist}
+Release:        14%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -181,6 +181,12 @@ fi
 
 
 %changelog
+* Mon Mar 26 2018 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-14
+- Switch to always retry by default
+- Drop akmods preset by f28
+- Don't enable service on ah
+- Test a rw directory
+
 * Wed Feb 07 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-13
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
 
