@@ -42,6 +42,9 @@ continue_line=""
 tmpdir=
 kernels=
 verboselevel=2
+# We cannot differenciate from a code failure to shutdown kill9 oom etc
+# So we always retry anyway
+alwaystry=1
 
 akmods_echo()
 {
