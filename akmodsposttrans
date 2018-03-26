@@ -39,7 +39,7 @@ if [ -e /bin/systemctl ] ; then
 
 		[ $RET == 0 ] && exit 0
 
-	/bin/systemctl start akmods@${1}.service --no-block >/dev/null 2>&1
+	/bin/systemctl restart akmods@${1}.service --no-block >/dev/null 2>&1
 else
 	nohup /usr/sbin/akmods --from-kernel-posttrans --kernels ${1} > /dev/null 2>&1 &
 fi
