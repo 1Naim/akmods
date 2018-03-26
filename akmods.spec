@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        14%{?dist}
+Release:        15%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -181,6 +181,10 @@ fi
 
 
 %changelog
+* Mon Mar 26 2018 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-15
+- Add inihibitor for akmods@.service
+- Use restart on akmodsposttrans
+
 * Mon Mar 26 2018 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-14
 - Switch to always retry by default
 - Drop akmods preset by f28
