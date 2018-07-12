@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        15%{?dist}
+Release:        16%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -181,6 +181,9 @@ fi
 
 
 %changelog
+* Thu Jul 12 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-16
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
+
 * Mon Mar 26 2018 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-15
 - Add inihibitor for akmods@.service
 - Use restart on akmodsposttrans
