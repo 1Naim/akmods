@@ -255,8 +255,8 @@ buildinstall_kmod()
 	unset TMPDIR
 
 	# build module using akmod
-	akmods_echo 1 4 "Building RPM using the command '$(which akmodsbuild) --target $(uname -m) --kernels ${this_kernelver} ${this_kmodsrpm}'"
-	/sbin/runuser -s /bin/bash -c "$(which akmodsbuild) --quiet --quiet --target $(uname -m) --kernels ${this_kernelver} --outputdir ${tmpdir}results --logfile ${tmpdir}/akmodsbuild.log ${this_kmodsrpm}" akmods >> "${kmodlogfile}" 2>&1
+	akmods_echo 1 4 "Building RPM using the command '$(which akmodsbuild) --kernels ${this_kernelver} ${this_kmodsrpm}'"
+	/sbin/runuser -s /bin/bash -c "$(which akmodsbuild) --quiet --kernels ${this_kernelver} --outputdir ${tmpdir}results --logfile ${tmpdir}/akmodsbuild.log ${this_kmodsrpm}" akmods >> "${kmodlogfile}" 2>&1
 	local returncode=$?
 
 	# copy rpmbuild log to kmod specific logfile
