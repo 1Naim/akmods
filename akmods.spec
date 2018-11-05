@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        16%{?dist}
+Release:        17%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -181,6 +181,11 @@ fi
 
 
 %changelog
+* Mon Nov 05 2018 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-17
+- Don't enforce target arch - rhbz#1644430
+- Rework log file path
+- Avoid using /usr/lib/modules for el6 compat
+
 * Thu Jul 12 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-16
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_29_Mass_Rebuild
 
