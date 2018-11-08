@@ -157,7 +157,11 @@ fi
 
 %files
 %doc README
+%if 0%{?rhel} > 6 || 0%{?fedora} > 20
 %license LICENSE
+%else
+%doc LICENSE
+%endif
 %{_sbindir}/akmodsbuild
 %{_sbindir}/akmods
 %{_sysconfdir}/kernel/postinst.d/akmodsposttrans
