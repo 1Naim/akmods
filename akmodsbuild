@@ -28,8 +28,8 @@ myver="0.5.6"
 # defaults that might get overwritten by user:
 kernels="$(uname -r)"
 target="$(uname -m)"
-if [[ "${target}" == "armv7l" ]]; then
-  target="armv7hl"
+if [[ "${target}" == "armv7l" ]] ; then
+	target="armv7hl"
 fi
 numberofjobs=$(grep -c processor /proc/cpuinfo 2> /dev/null)
 verboselevel=2
@@ -40,14 +40,14 @@ init ()
 {
 	## startup checks
 	# prevent root-usage
-	if [[ -w /var ]]; then
+	if [[ -w /var ]] ; then
 		echo "ERROR: Not to be used as root; start as user or '${myprog}' instead." >&2
-		exit 1 
+		exit 1
 	fi
 
 	# do we have everything we need to build for the kernels in question?
 	for kernel in ${kernels}; do
-		if [[ ! -e /usr/src/kernels/${kernel}/Makefile ]] && [[ ! -e /usr/lib/modules/${kernel}/build/Makefile ]]; then
+		if [[ ! -e /usr/src/kernels/${kernel}/Makefile ]] && [[ ! -e /usr/lib/modules/${kernel}/build/Makefile ]] ; then
 			echo "ERROR: Files needed for building modules against kernel" >&2
 			echo " ${kernel} could not be found as the following" >&2
 			echo " directories are missing:"
@@ -57,40 +57,40 @@ init ()
 		fi
 	done
 
-	if [[ ! "${srpms}" ]]; then
-			echo "ERROR: Please provide a list of SRPM-files to build."
-			exit 2
+	if [[ ! "${srpms}" ]] ; then
+		echo "ERROR: Please provide a list of SRPM-files to build."
+		exit 2
 	fi
 
 	# SRPMS available?
 	for srpm in ${srpms}; do
-		if [[ ! -r ${srpm} ]]; then
+		if [[ ! -r ${srpm} ]] ; then
 			echo "ERROR: Can't find SRPM ${srpm}"
 			exit 1
 		fi
 	done
 
 	# room to save things
-	if [[ ! -d "${outputdir}" ]]; then
+	if [[ ! -d "${outputdir}" ]] ; then
 		echo "ERROR: ${outputdir} is not a directory" >&2
 		exit 1
-	elif [[ ! -w "${outputdir}" ]]; then
+	elif [[ ! -w "${outputdir}" ]] ; then
 		echo "ERROR: ${outputdir} is not a writable" >&2
 		exit 1
 	fi
 
 
 	# make sure this is a number
-	if ! (( ${numberofjobs} > 0 )); then
+	if ! (( ${numberofjobs} > 0 )) ; then
 		echo "Warning: using hardcoded defaut value for number of jobs"
 		numberofjobs=2
 	fi
 
 	## preparations
 	# tmpdir
-	if ! tmpdir="$(mktemp -d -p /tmp ${myprog}.XXXXXXXX)" ; then 
-			echo "ERROR: Could create tempdir."
-			exit 1
+	if ! tmpdir="$(mktemp -d -p /tmp ${myprog}.XXXXXXXX)" ; then
+		echo "ERROR: Could create tempdir."
+		exit 1
 	fi
 
 	# buildtreee
@@ -102,9 +102,9 @@ init ()
 	fi
 
 	if ( [[ -e "${logfile}" ]] && [[ ! -w "${logfile}" ]] ) || ! touch "${logfile}" ; then
-			echo "ERROR: Could not write logfile."
-			finally
-			exit 1
+		echo "ERROR: Could not write logfile."
+		finally
+		exit 1
 	fi
 }
 
@@ -112,15 +112,15 @@ init ()
 finally()
 {
 	# kill background jobs if needed
-	if [[ "${watch_jobid}" ]]; then
+	if [[ "${watch_jobid}" ]] ; then
 		kill "${watch_jobid}"
 	fi
-	if [[ "${rpmbuild_jobid}" ]]; then
+	if [[ "${rpmbuild_jobid}" ]] ; then
 		kill "${rpmbuild_jobid}"
 	fi
 
 	# remove tmpfiles
-	if [[ -d "${tmpdir}" ]]; then
+	if [[ -d "${tmpdir}" ]] ; then
 		rm -rf "${tmpdir}"
 	fi
 }
@@ -137,7 +137,7 @@ akmods_echo()
 	local this_verbose=${1}
 	shift
 
-	if [[ "${1}" == "--not-logfile" ]]; then
+	if [[ "${1}" == "--not-logfile" ]] ; then
 		local notlogfile=true
 		shift
 	fi
@@ -148,7 +148,7 @@ akmods_echo()
 	fi
 
 	# global logfile
-	if [[ ! ${notlogfile} ]]; then
+	if [[ ! ${notlogfile} ]] ; then
 		echo "$@" >> "${logfile}"
 	fi
 }
@@ -159,20 +159,20 @@ watch_rpmbuild()
 	# background function to show rpmbuild progress
 	# does't use akmods_echo here; this stage handles the output on its own
 	# (seperate process and there is no need to log this)
-	if (( ${verboselevel} == 2 )); then
-		tail --pid ${1} -n +1 -s 0.1 -f ${2} 2>/dev/null | grep --line-buffered -e '%prep' -e '%build' -e '%install' -e '%clean' |  while read line; do
-			if [[ "${line}" != "${line##*prep}" ]]; then
+	if (( ${verboselevel} == 2 )) ; then
+		tail --pid ${1} -n +1 -s 0.1 -f ${2} 2>/dev/null | grep --line-buffered -e '%prep' -e '%build' -e '%install' -e '%clean' | while read line ; do
+			if [[ "${line}" != "${line##*prep}" ]] ; then
 				echo -n "prep "
-			elif [[ "${line}" != "${line##*build}" ]]; then
+			elif [[ "${line}" != "${line##*build}" ]] ; then
 				echo -n "build "
-			elif [[ "${line}" != "${line##*install}" ]]; then
+			elif [[ "${line}" != "${line##*install}" ]] ; then
 				echo -n "install "
-			elif [[ "${line}" != "${line##*clean}" ]]; then
+			elif [[ "${line}" != "${line##*clean}" ]] ; then
 				echo -n "clean; "
 				# last linefeed is done by the caller
 			fi
 		done
-	elif (( ${verboselevel} > 2 )); then
+	elif (( ${verboselevel} > 2 )) ; then
 		tail --pid ${1} -n +1 -s 0.1 -f ${2}
 	fi
 }
@@ -200,7 +200,7 @@ process_srpm()
 	local rpmbuild_jobid=$!
 
 	# show progress
-	if (( ${verboselevel} >= 2 )); then
+	if (( ${verboselevel} >= 2 )) ; then
 		watch_rpmbuild ${rpmbuild_jobid} "${tmpdir}/.joblog" 2> /dev/null &
 		local watch_jobid=$!
 	fi
@@ -211,14 +211,14 @@ process_srpm()
 	unset rpmbuild_jobid
 
 	# give watch_rpmbuild a moment to catch up; kill it if it does not
-	if (( ${verboselevel} >= 2 )); then
+	if (( ${verboselevel} >= 2 )) ; then
 		sleep 0.5
 		kill ${watch_jobid} &> /dev/null
 		unset watch_jobid
 	fi
 
 	# did rpmbuild succeed?
-	if (( ${rpmbuild_returncode} != 0 )); then
+	if (( ${rpmbuild_returncode} != 0 )) ; then
 		# linefeed:
 		akmods_echo 1 2 ""
 
@@ -230,7 +230,7 @@ process_srpm()
 	fi
 
 	# finish status for watch_rpmbuild
-	if (( ${verboselevel} >= 2 )); then
+	if (( ${verboselevel} >= 2 )) ; then
 		akmods_echo 1 2 -n "Successfull; "
 	fi
 
@@ -244,11 +244,11 @@ process_srpm()
 		return 128
 	fi
 
-	if (( ${verboselevel} == 1 )); then
+	if (( ${verboselevel} == 1 )) ; then
 		for rpm in ${rpms_built}; do
 			echo "${outputdir%%/}/${rpm}"
 		done
-	elif (( ${verboselevel} >= 2 )); then
+	elif (( ${verboselevel} >= 2 )) ; then
 		akmods_echo 1 2  "Saved ${rpms_built} in ${outputdir%%/}/"
 	fi
 
@@ -285,7 +285,7 @@ while [ "${1}" ] ; do
 			;;
 		-l|--logfile)
 			shift
-			if [[ ! "${1}" ]]; then
+			if [[ ! "${1}" ]] ; then
 				echo "ERROR: Please provide a filename together with --logfile" >&2
 				exit 1
 			fi
@@ -294,7 +294,7 @@ while [ "${1}" ] ; do
 			;;
 		-o|--outputdir)
 			shift
-			if [[ ! "${1}" ]]; then
+			if [[ ! "${1}" ]] ; then
 				echo "ERROR: Please provide the output directory together with --outputdir" >&2
 				exit 1
 			fi
@@ -346,7 +346,7 @@ for srpm in ${srpms}; do
 	process_srpm ${srpm}
 	returncode=$?
 
-	if (( ${returncode} != 0 )); then
+	if (( ${returncode} != 0 )) ; then
 		finally
 		exit ${returncode}
 	fi

@@ -26,7 +26,7 @@
 #
 
 # just check in case a user calls this directly
-if [[ ! -w /var ]]; then
+if [[ ! -w /var ]] ; then
 	echo "Needs to run as root to be able to install rpms." >&2
 	exit 4
 fi
@@ -37,7 +37,7 @@ if [ -e /bin/systemctl ] ; then
 	/bin/systemctl is-active system-update.target &>/dev/null
 	RET=$?
 
-		[ $RET == 0 ] && exit 0
+	[ $RET == 0 ] && exit 0
 
 	/bin/systemctl restart akmods@${1}.service --no-block >/dev/null 2>&1
 else
