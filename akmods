@@ -194,7 +194,7 @@ init ()
 		fi
 	fi
 	if [[ ! -w "/var/cache/akmods/" ]] ; then
-		echo -n "${directory} not writable" >&2
+		echo -n "/var/cache/akmods/ not writable" >&2
 		echo_failure ; echo ; exit 1
 	fi
 
