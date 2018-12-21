@@ -19,6 +19,7 @@ Source8:        akmods-shutdown.service
 Source9:        README
 Source10:       LICENSE
 Source11:       akmods@.service
+Source12:       akmods-ostree-post
 
 BuildArch:      noarch
 
@@ -93,6 +94,7 @@ mkdir -p %{buildroot}%{_usrsrc}/akmods \
 
 install -pm 0755 %{SOURCE1} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE2} %{buildroot}%{_sbindir}/
+install -pm 0755 %{SOURCE12} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE5} %{buildroot}%{_sysconfdir}/kernel/postinst.d/
 
 %if 0%{?fedora} || 0%{?rhel} > 6
@@ -164,6 +166,7 @@ fi
 %endif
 %{_sbindir}/akmodsbuild
 %{_sbindir}/akmods
+%{_sbindir}/akmods-ostree-post
 %{_sysconfdir}/kernel/postinst.d/akmodsposttrans
 %if 0%{?fedora} || 0%{?rhel} > 6
 %{_unitdir}/akmods.service
@@ -185,7 +188,10 @@ fi
 
 
 %changelog
-* Thu Feb 28 2019 Hans de Goede <hdegoede@redhat.com> - 0.5.6-19
+* Thu Feb 28 2019 Alexander Larsson <alexl@redhat.com> - 0.5.6-19
+- Support ostree/silverblue builds - rhbz#1667014
+
+* Thu Feb 28 2019 Hans de Goede <hdegoede@redhat.com>
 - Do not fail when the old initscripts pkg is not installed - rhbz#1680121
 
 * Thu Jan 31 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-18
