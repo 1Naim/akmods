@@ -163,8 +163,19 @@ init ()
 	if [[ -r /etc/rc.d/init.d/functions ]] ; then
 		source /etc/rc.d/init.d/functions
 	else
-		echo "/etc/rc.d/init.d/functions not found" >&2
-		exit 1
+		# Use our own simple replacements
+		echo_success() {
+			echo -ne " [  OK  ]\r"
+			return 0
+		}
+		echo_failure() {
+			echo -ne " [FAILED]\r"
+			return 1
+		}
+		echo_warning() {
+			echo -ne " [WARNING]\r"
+			return 1
+		}
 	fi
 
 	# needs root permissions

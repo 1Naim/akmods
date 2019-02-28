@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        18%{?dist}
+Release:        19%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -185,6 +185,9 @@ fi
 
 
 %changelog
+* Thu Feb 28 2019 Hans de Goede <hdegoede@redhat.com> - 0.5.6-19
+- Do not fail when the old initscripts pkg is not installed - rhbz#1680121
+
 * Thu Jan 31 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-18
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
