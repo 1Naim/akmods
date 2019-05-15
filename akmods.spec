@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        19%{?dist}
+Release:        20%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -20,6 +20,7 @@ Source9:        README
 Source10:       LICENSE
 Source11:       akmods@.service
 Source12:       akmods-ostree-post
+Source13:       95-akmodsposttrans.install
 
 BuildArch:      noarch
 
@@ -98,6 +99,8 @@ install -pm 0755 %{SOURCE12} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE5} %{buildroot}%{_sysconfdir}/kernel/postinst.d/
 
 %if 0%{?fedora} || 0%{?rhel} > 6
+mkdir -p %{buildroot}%{_prefix}/lib/kernel/install.d
+install -pm 0755 %{SOURCE13} %{buildroot}%{_prefix}/lib/kernel/install.d/
 mkdir -p \
          %{buildroot}%{_unitdir} \
          %{buildroot}%{_presetdir}
@@ -173,6 +176,7 @@ fi
 %{_unitdir}/akmods@.service
 %{_sbindir}/akmods-shutdown
 %{_unitdir}/akmods-shutdown.service
+%{_prefix}/lib/kernel/install.d/95-akmodsposttrans.install
 # akmods was enabled in the default preset by f28
 %if 0%{?fedora} && 0%{?fedora} >= 28
 %exclude %{_presetdir}/95-akmods.preset
@@ -188,6 +192,10 @@ fi
 
 
 %changelog
+* Wed May 15 2019 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-20
+- Fix akmodsposttrans after kernel update/install on Fedora >= 28 and 
+  RHEL >= 7 - rhbz#1709055
+
 * Thu Feb 28 2019 Alexander Larsson <alexl@redhat.com> - 0.5.6-19
 - Support ostree/silverblue builds - rhbz#1667014
 
