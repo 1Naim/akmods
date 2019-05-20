@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        20%{?dist}
+Release:        21%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -192,6 +192,9 @@ fi
 
 
 %changelog
+* Mon May 20 2019 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-21
+- Add check for rhel8
+
 * Wed May 15 2019 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-20
 - Fix akmodsposttrans after kernel update/install on Fedora >= 28 and 
   RHEL >= 7 - rhbz#1709055
