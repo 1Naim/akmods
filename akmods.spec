@@ -41,7 +41,7 @@ Requires:       kmodtool >= 1-9
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
 Requires:       gzip make sed tar unzip util-linux which rpm-build
 
-%if 0%{?fedora}
+%if 0%{?fedora} || 0%{?rhel} > 7
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
 Requires:       kernel-devel-uname-r
