@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        21%{?dist}
+Release:        22%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -192,6 +192,9 @@ fi
 
 
 %changelog
+* Wed Jul 24 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-22
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
 * Mon May 20 2019 Nicolas Chauvet <kwizart@gmail.com> - 0.5.6-21
 - Add check for rhel8
 
