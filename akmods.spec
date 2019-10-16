@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        22%{?dist}
+Release:        23%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -41,6 +41,9 @@ Requires:       kmodtool >= 1-9
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
 Requires:       gzip make sed tar unzip util-linux which rpm-build
 
+%if 0%{?rhel}
+Requires:       kernel-abi-whitelists
+%endif
 %if 0%{?fedora} || 0%{?rhel} > 7
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
@@ -192,6 +195,9 @@ fi
 
 
 %changelog
+* Wed Oct 16 2019 Leigh Scott <leigh123linux@googlemail.com> - 0.5.6-23
+- Add requires kernel-abi-whitelists for RHEL
+
 * Wed Jul 24 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-22
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
 
