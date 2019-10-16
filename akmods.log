@@ -1,0 +1,7 @@
+/var/cache/akmods/akmods.log {
+    monthly
+    rotate 12
+    missingok
+    notifempty
+    create 644 root root
+}

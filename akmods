@@ -136,10 +136,17 @@ remove_tmpdir()
 
 cleanup_cachedir ()
 {
-	create_tmpdir
-	find /boot/ -maxdepth 1 -name 'vmlinuz*' | sed 's|/boot/vmlinuz-||' > "${tmpdir}"results/kernels
-	find "/var/cache/akmods/" -maxdepth 2 -mtime +14 -type f \( -name '*.rpm' -or -name '*.log' \) | grep -v --file "${tmpdir}"results/kernels | xargs --no-run-if-empty rm
-	remove_tmpdir
+	for one_file in $(ls /var/cache/akmods/*/* 2>/dev/null | \
+					  grep -v "$(ls -I "*rescue*" /boot/vmlinuz-* | \
+					  sed 's%.*vmlinuz-%%g')") ; do
+		if $(grep -qE ".*\.rpm$" <<< "${one_file}") ; then
+			if ! $(rpm -q "$(basename ${one_file%.rpm})" >/dev/null) ; then
+				rm -f "${one_file}"
+			fi
+		else
+			rm -f "${one_file}"
+		fi
+	done
 }
 
 init ()
@@ -523,6 +530,9 @@ while [ "${1}" ] ; do
 		--from-init)
 			# just in case: remove stale lockfile if it exists:
 			rm -f /var/cache/akmods/.lockfile
+			# Clean old logs and rpm files from no more installed kmod
+			# packages.
+			cleanup_cachedir
 			shift
 			;;
 		--from-posttrans|--from-kernel-posttrans|--from-akmod-posttrans)
