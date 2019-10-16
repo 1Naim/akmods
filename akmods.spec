@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        28%{?dist}
+Release:        29%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -200,6 +200,17 @@ fi
 
 
 %changelog
+* Fri Oct 22 2021 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-29
+- Remove trailing spaces and clean-up
+- Use %%{name} when possible
+- Convert if statement from "[!] $variable" to "[!] -n $variable"
+- Fix kernel list build when parsing command line options
+- Ensure to build for grub default kernel
+- Improve detection of already installed (weak-)modules in akmods (RHEL)
+- akmods uses logrotate and clean-up /var/cache/akmods sub-directories of
+  old logs and rpm files from no more installed kmod packages
+  (rhbz #1542658).
+
 * Wed Jul 21 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-28
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
 
