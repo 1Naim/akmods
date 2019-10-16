@@ -64,7 +64,7 @@ create_tmpdir()
 remove_tmpdir()
 {
 	# remove tmpfiles
-	if [[ "${tmpdir}" ]] && [[ -d "${tmpdir}" ]]; then
+	if [[ -n "${tmpdir}" ]] && [[ -d "${tmpdir}" ]]; then
 		rm -rf "${tmpdir}"
 	fi
 }

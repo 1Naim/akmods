@@ -57,7 +57,7 @@ init ()
 		fi
 	done
 
-	if [[ ! "${srpms}" ]] ; then
+	if [[ ! -n "${srpms}" ]] ; then
 		echo "ERROR: Please provide a list of SRPM-files to build."
 		exit 2
 	fi
@@ -97,7 +97,7 @@ init ()
 	mkdir "${tmpdir}"/{BUILD,SOURCES,SPECS,SRPMS,RPMS,RPMS/"${target}"}
 
 	# logfile
-	if [[ ! "${logfile}" ]] ; then
+	if [[ ! -n "${logfile}" ]] ; then
 		logfile="${tmpdir}/logfile"
 	fi
 
@@ -112,10 +112,10 @@ init ()
 finally()
 {
 	# kill background jobs if needed
-	if [[ "${watch_jobid}" ]] ; then
+	if [[ -n "${watch_jobid}" ]] ; then
 		kill "${watch_jobid}"
 	fi
-	if [[ "${rpmbuild_jobid}" ]] ; then
+	if [[ -n "${rpmbuild_jobid}" ]] ; then
 		kill "${rpmbuild_jobid}"
 	fi
 
@@ -148,7 +148,7 @@ akmods_echo()
 	fi
 
 	# global logfile
-	if [[ ! ${notlogfile} ]] ; then
+	if [[ ! -n ${notlogfile} ]] ; then
 		echo "$@" >> "${logfile}"
 	fi
 }
@@ -276,7 +276,7 @@ while [ "${1}" ] ; do
 	case "${1}" in
 		-k|--kernels)
 			shift
-			if [[ ! "${1}" ]] ; then
+			if [[ ! -n "${1}" ]] ; then
 				echo "ERROR: Please provide kernel-version(s) to build for together with --kernel" >&2
 				exit 1
 			fi
@@ -285,7 +285,7 @@ while [ "${1}" ] ; do
 			;;
 		-l|--logfile)
 			shift
-			if [[ ! "${1}" ]] ; then
+			if [[ ! -n "${1}" ]] ; then
 				echo "ERROR: Please provide a filename together with --logfile" >&2
 				exit 1
 			fi
@@ -294,7 +294,7 @@ while [ "${1}" ] ; do
 			;;
 		-o|--outputdir)
 			shift
-			if [[ ! "${1}" ]] ; then
+			if [[ ! -n "${1}" ]] ; then
 				echo "ERROR: Please provide the output directory together with --outputdir" >&2
 				exit 1
 			fi
@@ -303,7 +303,7 @@ while [ "${1}" ] ; do
 			;;
 		-t|--target)
 			shift
-			if [[ ! "${1}" ]] ; then
+			if [[ ! -n "${1}" ]] ; then
 				echo "ERROR: Please provide the target-arch together with --target" >&2
 				exit 1
 			fi

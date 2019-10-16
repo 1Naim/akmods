@@ -94,7 +94,7 @@ akmods_echo()
 	echo "$(date +%Y/%m/%d\ %H:%M:%S) akmods: $@" >> "/var/cache/akmods/akmods.log"
 
 	# the kmods logfile as well, if we work on a kmod
-	if [[ "${kmodlogfile}" ]] ; then
+	if [[ -n "${kmodlogfile}" ]] ; then
 		echo "$(date +%Y/%m/%d\ %H:%M:%S) akmods: $@" >> "${kmodlogfile}"
 	fi
 }
@@ -128,7 +128,7 @@ create_tmpdir()
 remove_tmpdir()
 {
 	# remove tmpfiles
-	if [[ "${tmpdir}" ]] && [[ -d "${tmpdir}" ]] ; then
+	if [[ -n "${tmpdir}" ]] && [[ -d "${tmpdir}" ]] ; then
 		rm -f "${tmpdir}"results/* "${tmpdir}"*.log
 		rmdir "${tmpdir}"results/ "${tmpdir}"
 	fi
@@ -155,7 +155,7 @@ init ()
 	umask ${UMASK}
 
 	# fall back to current kernel if user didn't provide one
-	if [[ ! "${kernels}" ]] ; then
+	if [[ ! -n "${kernels}" ]] ; then
 		kernels="$(uname -r)"
 	fi
 
@@ -280,7 +280,7 @@ buildinstall_kmod()
 
 	# result
 	if (( ! ${returncode} == 0 )) ; then
-		if [[ "${continue_line}" ]] ; then
+		if [[ -n "${continue_line}" ]] ; then
 			akmods_echo 1 2 --failure
 		fi
 		akmods_echo 2 1 "Building rpms failed; see /var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}.failed.log for details"
@@ -306,7 +306,7 @@ buildinstall_kmod()
 
 	# everything fine?
 	if (( ${returncode} != 0 )) ; then
-		if [[ "${continue_line}" ]] ; then
+		if [[ -n "${continue_line}" ]] ; then
 			akmods_echo 1 2 --failure
 		fi
 		akmods_echo 2 1 "Could not install newly built RPMs. You can find them and the logfile in:"
@@ -339,7 +339,7 @@ check_kmod_up2date()
 
 	# kmod up2date?
 	local kmodpackage="$(rpm -qf /lib/modules/${this_kernelver}/extra/${this_kmodname}/ 2> /dev/null)"
-	if [[ ! "${kmodpackage}" ]] ; then
+	if [[ ! -n "${kmodpackage}" ]] ; then
 		# seems we didn't get what we wanted
 		# well, better to do nothing in this case
 		akmods_echo 1 2 -n "Warning: Could not determine what package owns /lib/modules/${this_kernelver}/extra/${this_kmodname}/"
@@ -376,7 +376,7 @@ check_kmods()
 		local this_kmodname="$(basename ${akmods_kmodfile%%-kmod.latest})"
 
 		# actually check this akmod?
-		if [[ "${akmods}" ]] ; then
+		if [[ -n "${akmods}" ]] ; then
 			for akmod in ${akmods} ; do
 				if [[ "${this_kmodname}" != "${akmod}" ]] ; then
 					# ignore this one
@@ -388,7 +388,7 @@ check_kmods()
 		# go
 		if ! check_kmod_up2date ${this_kernelver} ${this_kmodname} ; then
 			# okay, kmod wasn't found or is not up2date
-			if [[ "${continue_line}" ]] ; then
+			if [[ -n "${continue_line}" ]] ; then
 				akmods_echo 1 2 --success
 				# if the files for building modules are not available don't even try to build modules
 				if [[ ! -r /usr/src/kernels/"${this_kernelver}"/Makefile ]] && \
@@ -405,7 +405,7 @@ check_kmods()
 			fi
 
 			local this_kmodverrel="$(rpm -qp --qf '%{VERSION}-%{RELEASE}' "${akmods_kmodfile}" | sed 's!\.\(fc\|lvn\)[0-9]*!!g' )"
-			if [[ ! "${alwaystry}" ]] && [[ -e "/var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}".failed.log ]] ; then
+			if [[ ! -n "${alwaystry}" ]] && [[ -e "/var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}".failed.log ]] ; then
 				akmods_echo 1 2 -n "Ignoring ${this_kmodname}-kmod as it failed earlier"
 				akmods_echo 1 2 --warning
 				local someignored="true"
@@ -425,9 +425,9 @@ check_kmods()
 		fi
 	done
 
-	if [[ "${continue_line}" ]] ; then
+	if [[ -n "${continue_line}" ]] ; then
 		akmods_echo 1 2 --success
-	elif [[ "${someignored}" ]] || [[ "${somefailed}" ]] ; then
+	elif [[ -n "${someignored}" ]] || [[ -n "${somefailed}" ]] ; then
 		echo
 		akmods_echo 1 2 "Hint: Some kmods were ignored or failed to build or install."
 		akmods_echo 1 2 "You can try to rebuild and install them by by calling"
@@ -438,7 +438,7 @@ check_kmods()
 
 	# akmods for newly installed akmod rpms as wells as akmods.service run
 	# after udev and systemd-modules-load.service have tried to load modules
-	if [[ "${somesucceeded}" ]] && [[ ${this_kernelver} = "$(uname -r)" ]] ; then
+	if [[ -n "${somesucceeded}" ]] && [[ ${this_kernelver} = "$(uname -r)" ]] ; then
 		find /sys/devices -name modalias -print0 | xargs -0 cat | xargs modprobe -a -b -q
 		if [ -f /usr/bin/systemctl ] ; then
 			systemctl restart systemd-modules-load.service
@@ -463,7 +463,7 @@ while [ "${1}" ] ; do
 	case "${1}" in
 		--kernel|--kernels)
 			shift
-			if [[ ! "${1}" ]] ; then
+			if [[ ! -n "${1}" ]] ; then
 				echo "ERROR: Please provide the kernel-version to build for together with --kernel" >&2
 				exit 1
 			elif [[ ! -r /usr/src/kernels/"${1}"/Makefile ]] && \
@@ -487,7 +487,7 @@ while [ "${1}" ] ; do
 			;;
 		--akmod|--kmod)
 			shift
-			if [[ ! "${1}" ]] ; then
+			if [[ ! -n "${1}" ]] ; then
 				echo "ERROR: Please provide a name of a akmod package together with --akmods" >&2
 				exit 1
 			elif [[ -r /usr/src/akmods/"${1}"-kmod.latest ]] ; then
