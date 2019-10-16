@@ -158,6 +158,11 @@ init ()
 	if [[ ! -n "${kernels}" ]] ; then
 		kernels="$(uname -r)"
 	fi
+	# ensure to build for grub default kernel
+	default_kernel=$(grubby --default-kernel | sed -e 's/^.*vmlinuz-//')
+	if ! $(echo "${kernels}" | grep -q "${default_kernel}") ; then
+		kernels="${kernels} ${default_kernel}"
+	fi
 
 	# we get the echo_{success,failure} stuff from there
 	if [[ -r /etc/rc.d/init.d/functions ]] ; then
