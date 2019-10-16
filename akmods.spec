@@ -92,10 +92,10 @@ cp -p %{SOURCE9} %{SOURCE10} .
 
 
 %install
-mkdir -p %{buildroot}%{_usrsrc}/akmods \
+mkdir -p %{buildroot}%{_usrsrc}/%{name} \
          %{buildroot}%{_sbindir} \
          %{buildroot}%{_sysconfdir}/kernel/postinst.d \
-         %{buildroot}%{_localstatedir}/cache/akmods
+         %{buildroot}%{_localstatedir}/cache/%{name}
 
 install -pm 0755 %{SOURCE1} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE2} %{buildroot}%{_sbindir}/
@@ -116,7 +116,7 @@ install -pm 0644 %{SOURCE8} %{buildroot}%{_unitdir}/
 install -pm 0644 %{SOURCE11} %{buildroot}%{_unitdir}/
 %else
 mkdir -p %{buildroot}%{_initddir}/
-install -pm 0755 %{SOURCE4} %{buildroot}%{_initddir}/akmods
+install -pm 0755 %{SOURCE4} %{buildroot}%{_initddir}/%{name}
 %endif
 
 # Generate and install man pages.
