@@ -1,7 +1,7 @@
 Name:           akmods
 Version:        0.5.6
 Release:        28%{?dist}
-Summary:        Automatic kmods build and install tool 
+Summary:        Automatic kmods build and install tool
 
 License:        MIT
 URL:            http://rpmfusion.org/Packaging/KernelModules/Akmods
@@ -44,6 +44,7 @@ Requires:       gzip make sed tar unzip util-linux which rpm-build
 %if 0%{?rhel}
 Requires:       kernel-abi-whitelists
 %endif
+
 %if 0%{?fedora} || 0%{?rhel} > 7
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
@@ -220,7 +221,7 @@ fi
 - Add check for rhel8
 
 * Wed May 15 2019 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-20
-- Fix akmodsposttrans after kernel update/install on Fedora >= 28 and 
+- Fix akmodsposttrans after kernel update/install on Fedora >= 28 and
   RHEL >= 7 - rhbz#1709055
 
 * Thu Feb 28 2019 Alexander Larsson <alexl@redhat.com> - 0.5.6-19
