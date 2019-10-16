@@ -480,7 +480,11 @@ while [ "${1}" ] ; do
 				exit 1
 			fi
 			# overwrites the default:
-			kernels="${kernels}${1}"
+			if [[ ! -n "${kernels}" ]] ; then
+				kernels="${1}"
+			else
+				kernels="${kernels} ${1}"
+			fi
 			# an try to build, even if we tried already
 			alwaystry=true
 			shift
