@@ -1,5 +1,7 @@
 [Unit]
 Description=Builds and install new kmods from akmod for a given kernel
+Wants=akmods-keygen.target
+After=akmods-keygen.target
 
 [Service]
 Type=oneshot

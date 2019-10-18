@@ -1,6 +1,6 @@
 Name:           akmods
-Version:        0.5.6
-Release:        29%{?dist}
+Version:        0.5.7
+Release:        1%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -22,6 +22,11 @@ Source11:       akmods@.service
 Source12:       akmods-ostree-post
 Source13:       95-akmodsposttrans.install
 Source14:       akmods.log
+Source15:       README.secureboot
+Source16:       cacert.config.in
+Source17:       akmods-kmodgenca
+Source18:       akmods-keygen.target
+Source19:       akmods-keygen@.service
 
 BuildArch:      noarch
 
@@ -38,12 +43,18 @@ Requires:       %{_bindir}/time
 Requires:       %{_bindir}/rpmdev-vercmp
 Requires:       kmodtool >= 1-9
 
+# needed to create CA/Keypair to sign modules
+Requires:       openssl
+
 # this should track in all stuff that is normally needed to compile modules:
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
 Requires:       gzip make sed tar unzip util-linux which rpm-build
 
+# Add perl-interpreter to sign modules on rhel, as kernel tool sign-file
+# is a perl script until kernel 4.2.x (< 4.3.x).
 %if 0%{?rhel}
 Requires:       kernel-abi-whitelists
+Requires:       perl-interpreter
 %endif
 
 %if 0%{?fedora} || 0%{?rhel} > 7
@@ -85,7 +96,7 @@ after they were installed.
 
 %prep
 %setup -q -c -T
-cp -p %{SOURCE9} %{SOURCE10} .
+cp -p %{SOURCE9} %{SOURCE10} %{SOURCE15} .
 
 
 %build
@@ -95,6 +106,9 @@ cp -p %{SOURCE9} %{SOURCE10} .
 %install
 mkdir -p %{buildroot}%{_usrsrc}/%{name} \
          %{buildroot}%{_sbindir} \
+         %{buildroot}%{_sysconfdir}/rpm \
+         %{buildroot}%{_sysconfdir}/pki/%{name}/certs \
+         %{buildroot}%{_sysconfdir}/pki/%{name}/private \
          %{buildroot}%{_sysconfdir}/kernel/postinst.d \
          %{buildroot}%{_sysconfdir}/logrotate.d \
          %{buildroot}%{_localstatedir}/cache/%{name}
@@ -104,6 +118,8 @@ install -pm 0755 %{SOURCE2} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE12} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE5} %{buildroot}%{_sysconfdir}/kernel/postinst.d/
 install -pm 0644 %{SOURCE14} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}.conf
+install -pm 0640 %{SOURCE16} %{buildroot}%{_sysconfdir}/pki/%{name}/
+install -pm 0755 %{SOURCE17} %{buildroot}%{_sbindir}/kmodgenca
 
 %if 0%{?fedora} || 0%{?rhel} > 6
 mkdir -p %{buildroot}%{_prefix}/lib/kernel/install.d
@@ -117,6 +133,8 @@ install -pm 0644 %{SOURCE0} %{buildroot}%{_presetdir}/
 install -pm 0755 %{SOURCE7} %{buildroot}%{_sbindir}/
 install -pm 0644 %{SOURCE8} %{buildroot}%{_unitdir}/
 install -pm 0644 %{SOURCE11} %{buildroot}%{_unitdir}/
+install -pm 0644 %{SOURCE18} %{buildroot}%{_unitdir}/
+install -pm 0644 %{SOURCE19} %{buildroot}%{_unitdir}/
 %else
 mkdir -p %{buildroot}%{_initddir}/
 install -pm 0755 %{SOURCE4} %{buildroot}%{_initddir}/%{name}
@@ -168,7 +186,7 @@ fi
 
 
 %files
-%doc README
+%doc README README.secureboot
 %if 0%{?rhel} > 6 || 0%{?fedora} > 20
 %license LICENSE
 %else
@@ -177,6 +195,10 @@ fi
 %{_sbindir}/akmodsbuild
 %{_sbindir}/akmods
 %{_sbindir}/akmods-ostree-post
+%{_sbindir}/kmodgenca
+%dir %attr(750,root,akmods) %{_sysconfdir}/pki/%{name}/certs
+%dir %attr(750,root,akmods) %{_sysconfdir}/pki/%{name}/private
+%config(noreplace) %attr(640,root,akmods) %{_sysconfdir}/pki/%{name}/cacert.config.in
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}.conf
 %{_sysconfdir}/kernel/postinst.d/akmodsposttrans
 %if 0%{?fedora} || 0%{?rhel} > 6
@@ -185,6 +207,8 @@ fi
 %{_sbindir}/akmods-shutdown
 %{_unitdir}/akmods-shutdown.service
 %{_prefix}/lib/kernel/install.d/95-akmodsposttrans.install
+%attr(0644,root,root) %{_unitdir}/akmods-keygen.target
+%attr(0644,root,root) %{_unitdir}/akmods-keygen@.service
 # akmods was enabled in the default preset by f28
 %if 0%{?fedora} && 0%{?fedora} >= 28
 %exclude %{_presetdir}/95-akmods.preset
@@ -200,6 +224,11 @@ fi
 
 
 %changelog
+* Fri Oct 22 2021 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.7-1
+- Add local akmods CA signing keys and support tools to sign modules for
+  Secure boot thanks to Stanislas Leduc <stanislas.leduc@balinor.net>
+- Add akmods-keygen service to generate MOK key pair on first run
+
 * Fri Oct 22 2021 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-29
 - Remove trailing spaces and clean-up
 - Use %%{name} when possible
