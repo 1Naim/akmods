@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        23%{?dist}
+Release:        24%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -195,6 +195,9 @@ fi
 
 
 %changelog
+* Wed Nov 20 2019 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-24
+- Check kernel presence differently for systemd-boot machines - rhbz#1769144
+
 * Wed Oct 16 2019 Leigh Scott <leigh123linux@googlemail.com> - 0.5.6-23
 - Add requires kernel-abi-whitelists for RHEL
 
