@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        24%{?dist}
+Release:        25%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -195,6 +195,9 @@ fi
 
 
 %changelog
+* Tue Jan 28 2020 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-25
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_32_Mass_Rebuild
+
 * Wed Nov 20 2019 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.6-24
 - Check kernel presence differently for systemd-boot machines - rhbz#1769144
 
