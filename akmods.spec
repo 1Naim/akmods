@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.6
-Release:        27%{?dist}
+Release:        28%{?dist}
 Summary:        Automatic kmods build and install tool 
 
 License:        MIT
@@ -195,6 +195,9 @@ fi
 
 
 %changelog
+* Wed Jul 21 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-28
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_35_Mass_Rebuild
+
 * Mon Jan 25 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.6-27
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
 
