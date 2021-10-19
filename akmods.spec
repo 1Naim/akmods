@@ -77,7 +77,7 @@ Requires: elfutils-libelf-devel
 
 %description
 Akmods startup script will rebuild akmod packages during system
-boot while its background daemon will build them for kernels right
+boot, while its background daemon will build them for kernels right
 after they were installed.
 
 
