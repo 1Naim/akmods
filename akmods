@@ -230,7 +230,7 @@ init ()
 	done
 
 	# create lockfile and wait till we get it
-	exec 99>/var/lock/subsys/akmods
+	exec 99>/run/lock/akmods.lock
 	flock -w 900 99
 }
 
