@@ -82,7 +82,6 @@ Requires:       kernel-devel
 # we create a special user that used by akmods to build kmod packages
 Requires(pre):  shadow-utils
 
-%if 0%{?fedora} || 0%{?rhel} > 6
 # systemd unit requirements.
 BuildRequires:  systemd
 Requires(post): systemd
@@ -90,7 +89,6 @@ Requires(preun): systemd
 Requires(postun): systemd
 # Optional but good to have on recent kernel
 Requires: elfutils-libelf-devel
-%endif
 
 
 %description
@@ -126,7 +124,6 @@ install -pm 0644 %{SOURCE14} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}.conf
 install -pm 0640 %{SOURCE16} %{buildroot}%{_sysconfdir}/pki/%{name}/
 install -pm 0755 %{SOURCE17} %{buildroot}%{_sbindir}/kmodgenca
 
-%if 0%{?fedora} || 0%{?rhel} > 6
 mkdir -p %{buildroot}%{_prefix}/lib/kernel/install.d
 install -pm 0755 %{SOURCE13} %{buildroot}%{_prefix}/lib/kernel/install.d/
 mkdir -p \
@@ -140,10 +137,6 @@ install -pm 0644 %{SOURCE8} %{buildroot}%{_unitdir}/
 install -pm 0644 %{SOURCE11} %{buildroot}%{_unitdir}/
 install -pm 0644 %{SOURCE18} %{buildroot}%{_unitdir}/
 install -pm 0644 %{SOURCE19} %{buildroot}%{_unitdir}/
-%else
-mkdir -p %{buildroot}%{_initddir}/
-install -pm 0755 %{SOURCE4} %{buildroot}%{_initddir}/%{name}
-%endif
 
 # Generate and install man pages.
 mkdir -p %{buildroot}%{_mandir}/man1
@@ -162,7 +155,6 @@ getent passwd akmods >/dev/null || \
 useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
     -c "User is used by akmods to build akmod packages" akmods
 
-%if 0%{?fedora} || 0%{?rhel} > 6
 %post
 %systemd_post akmods.service
 %systemd_post akmods@.service
@@ -177,26 +169,11 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 %systemd_postun akmods.service
 %systemd_postun akmods@.service
 %systemd_postun akmods-shutdown.service
-%else
-%post
-if [ $1 -eq 1 ] ; then
-  /sbin/chkconfig --add akmods ||:
-fi
-
-%preun
-if [ $1 -eq 0 ] ; then
-  /sbin/chkconfig --del akmods || :
-fi
-%endif
 
 
 %files
 %doc README README.secureboot
-%if 0%{?rhel} > 6 || 0%{?fedora} > 20
 %license LICENSE
-%else
-%doc LICENSE
-%endif
 %{_sbindir}/akmodsbuild
 %{_sbindir}/akmods
 %{_sbindir}/akmods-ostree-post
@@ -206,7 +183,6 @@ fi
 %config(noreplace) %attr(640,root,akmods) %{_sysconfdir}/pki/%{name}/cacert.config.in
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}.conf
 %{_sysconfdir}/kernel/postinst.d/akmodsposttrans
-%if 0%{?fedora} || 0%{?rhel} > 6
 %{_unitdir}/akmods.service
 %{_unitdir}/akmods@.service
 %{_sbindir}/akmods-shutdown
@@ -215,14 +191,7 @@ fi
 %attr(0644,root,root) %{_unitdir}/akmods-keygen.target
 %attr(0644,root,root) %{_unitdir}/akmods-keygen@.service
 # akmods was enabled in the default preset by f28
-%if 0%{?fedora} && 0%{?fedora} >= 28
-%exclude %{_presetdir}/95-akmods.preset
-%else
 %{_presetdir}/95-akmods.preset
-%endif
-%else
-%{_initddir}/akmods
-%endif
 %{_usrsrc}/akmods
 %attr(-,akmods,akmods) %{_localstatedir}/cache/akmods
 %{_mandir}/man1/*
