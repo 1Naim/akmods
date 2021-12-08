@@ -52,9 +52,14 @@ Requires:       gzip make sed tar unzip util-linux which rpm-build
 
 # Add perl-interpreter to sign modules on rhel, as kernel tool sign-file
 # is a perl script until kernel 4.2.x (< 4.3.x).
-%if 0%{?rhel}
-Requires:       kernel-abi-whitelists
 Requires:       perl-interpreter
+# On EL, kABI list was renamed
+%if 0%{?rhel}
+%if 0%{?rhel} >= 8
+Requires:       (kernel-abi-stablelists or kernel-abi-whitelists)
+%else
+Requires:       kernel-abi-whitelists
+%endif
 %endif
 
 %if 0%{?fedora} || 0%{?rhel} > 7
