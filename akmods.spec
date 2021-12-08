@@ -41,7 +41,7 @@ Requires:       %{_bindir}/time
 
 # needed for actually building kmods:
 Requires:       %{_bindir}/rpmdev-vercmp
-Requires:       kmodtool >= 1-9
+Requires:       kmodtool >= 1.1-1
 
 # needed to create CA/Keypair to sign modules
 Requires:       openssl
