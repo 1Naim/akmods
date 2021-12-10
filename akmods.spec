@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -198,6 +198,12 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Fri Dec 10 2021 Nicolas Chauvet <kwizart@gmail.com> - 0.5.7-2
+- Bump kmodtool requirement
+- Rename kABI list
+- Drop EL6 support
+- Switch to distro agnostic deps
+
 * Fri Oct 22 2021 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.7-1
 - Add local akmods CA signing keys and support tools to sign modules for
   Secure boot thanks to Stanislas Leduc <stanislas.leduc@balinor.net>
