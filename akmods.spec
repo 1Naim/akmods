@@ -66,9 +66,16 @@ Requires:       kernel-abi-whitelists
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
 Requires:       kernel-devel-uname-r
+# kernel-devel-matched enforces the same kernel version as the -devel
+%if 0%{?fedora} >= 36 || 0%{?rhel} >= 9
+Suggests:       (kernel-debug-devel-matched if kernel-debug)
+Suggests:       (kernel-devel-matched if kernel)
+Suggests:       (kernel-lpae-devel-matched if kernel-lpae)
+%else
 Suggests:       (kernel-debug-devel if kernel-debug)
 Suggests:       (kernel-devel if kernel)
 Suggests:       (kernel-lpae-devel if kernel-lpae)
+%endif
 Suggests:       (kernel-PAE-devel if kernel-PAE)
 Suggests:       (kernel-PAEdebug-devel if kernel-PAEdebug)
 # Theses are from planetccrma-core or rhel-7-server-rt-rpms
