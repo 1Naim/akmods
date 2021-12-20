@@ -198,7 +198,11 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 %attr(0644,root,root) %{_unitdir}/akmods-keygen.target
 %attr(0644,root,root) %{_unitdir}/akmods-keygen@.service
 # akmods was enabled in the default preset by f28
+%if 0%{?rhel}
 %{_presetdir}/95-akmods.preset
+%else
+%exclude %{_presetdir}/95-akmods.preset
+%endif
 %{_usrsrc}/akmods
 %attr(-,akmods,akmods) %{_localstatedir}/cache/akmods
 %{_mandir}/man1/*
