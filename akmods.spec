@@ -11,7 +11,6 @@ Source0:        95-akmods.preset
 Source1:        akmods
 Source2:        akmodsbuild
 Source3:        akmods.h2m
-Source4:        akmodsinit
 Source5:        akmodsposttrans
 Source6:        akmods.service.in
 Source7:        akmods-shutdown
