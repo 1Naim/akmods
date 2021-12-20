@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -205,6 +205,13 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Mon Dec 20 2021 Nicolas Chauvet <kwizart@gmail.com> - 0.5.7-3
+- Drop perl-interpeter
+- Drop akmodsinit
+- Only use preset on rhel
+- kernel-devel-matched support
+  see also https://src.fedoraproject.org/rpms/akmods/pull-request/7
+
 * Fri Dec 10 2021 Nicolas Chauvet <kwizart@gmail.com> - 0.5.7-2
 - Bump kmodtool requirement
 - Rename kABI list
