@@ -49,9 +49,6 @@ Requires:       openssl
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
 Requires:       gzip make sed tar unzip util-linux which rpm-build
 
-# Add perl-interpreter to sign modules on rhel, as kernel tool sign-file
-# is a perl script until kernel 4.2.x (< 4.3.x).
-Requires:       perl-interpreter
 # On EL, kABI list was renamed
 %if 0%{?rhel}
 %if 0%{?rhel} >= 8
