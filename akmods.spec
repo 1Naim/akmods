@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        5%{?dist}
+Release:        6%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -26,6 +26,7 @@ Source16:       cacert.config.in
 Source17:       akmods-kmodgenca
 Source18:       akmods-keygen.target
 Source19:       akmods-keygen@.service
+Source20:       %{name}-tmpfiles.conf
 
 BuildArch:      noarch
 
@@ -117,7 +118,8 @@ mkdir -p %{buildroot}%{_usrsrc}/%{name} \
          %{buildroot}%{_sysconfdir}/pki/%{name}/private \
          %{buildroot}%{_sysconfdir}/kernel/postinst.d \
          %{buildroot}%{_sysconfdir}/logrotate.d \
-         %{buildroot}%{_localstatedir}/cache/%{name}
+         %{buildroot}%{_localstatedir}/cache/%{name} \
+         %{buildroot}%{_tmpfilesdir}
 
 install -pm 0755 %{SOURCE1} %{buildroot}%{_sbindir}/
 install -pm 0755 %{SOURCE2} %{buildroot}%{_sbindir}/
@@ -126,6 +128,8 @@ install -pm 0755 %{SOURCE5} %{buildroot}%{_sysconfdir}/kernel/postinst.d/
 install -pm 0644 %{SOURCE14} %{buildroot}%{_sysconfdir}/logrotate.d/%{name}.conf
 install -pm 0640 %{SOURCE16} %{buildroot}%{_sysconfdir}/pki/%{name}/
 install -pm 0755 %{SOURCE17} %{buildroot}%{_sbindir}/kmodgenca
+install -pm 0644 %{SOURCE20} %{buildroot}%{_tmpfilesdir}/%{name}.conf
+install -dpm 0770 %{buildroot}%{_rundir}/%{name}/
 
 mkdir -p %{buildroot}%{_prefix}/lib/kernel/install.d
 install -pm 0755 %{SOURCE13} %{buildroot}%{_prefix}/lib/kernel/install.d/
@@ -193,6 +197,8 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 %{_prefix}/lib/kernel/install.d/95-akmodsposttrans.install
 %attr(0644,root,root) %{_unitdir}/akmods-keygen.target
 %attr(0644,root,root) %{_unitdir}/akmods-keygen@.service
+%dir %attr(0770,root,akmods) %{_rundir}/%{name}
+%{_tmpfilesdir}/%{name}.conf
 # akmods was enabled in the default preset by f28
 %if 0%{?rhel}
 %{_presetdir}/95-akmods.preset
@@ -205,6 +211,9 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Thu Jan 27 2022 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.7-6
+- Adapt usage of lockfile to systemd-tmpfiles
+
 * Wed Jan 26 2022 Timothée Ravier <tim@siosm.fr> - 0.5.7-5
 - Use kernel*-core variants in conditional Suggests
 
