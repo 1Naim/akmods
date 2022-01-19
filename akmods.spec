@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -205,6 +205,9 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Wed Jan 19 2022 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.7-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
+
 * Mon Dec 20 2021 Nicolas Chauvet <kwizart@gmail.com> - 0.5.7-3
 - Drop perl-interpeter
 - Drop akmodsinit
