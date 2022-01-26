@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        4%{?dist}
+Release:        5%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -64,9 +64,9 @@ Requires:       kernel-abi-whitelists
 Requires:       kernel-devel-uname-r
 # kernel-devel-matched enforces the same kernel version as the -devel
 %if 0%{?fedora} >= 36 || 0%{?rhel} >= 9
-Suggests:       (kernel-debug-devel-matched if kernel-debug)
-Suggests:       (kernel-devel-matched if kernel)
-Suggests:       (kernel-lpae-devel-matched if kernel-lpae)
+Suggests:       (kernel-debug-devel-matched if kernel-debug-core)
+Suggests:       (kernel-devel-matched if kernel-core)
+Suggests:       (kernel-lpae-devel-matched if kernel-lpae-core)
 %else
 Suggests:       (kernel-debug-devel if kernel-debug)
 Suggests:       (kernel-devel if kernel)
@@ -205,6 +205,9 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Wed Jan 26 2022 Timothée Ravier <tim@siosm.fr> - 0.5.7-5
+- Use kernel*-core variants in conditional Suggests
+
 * Wed Jan 19 2022 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.7-4
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_36_Mass_Rebuild
 
