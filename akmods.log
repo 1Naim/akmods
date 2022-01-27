@@ -1,4 +1,4 @@
-/var/cache/akmods/akmods.log {
+/var/log/akmods/akmods.log {
     monthly
     rotate 12
     missingok

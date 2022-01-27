@@ -119,6 +119,7 @@ mkdir -p %{buildroot}%{_usrsrc}/%{name} \
          %{buildroot}%{_sysconfdir}/kernel/postinst.d \
          %{buildroot}%{_sysconfdir}/logrotate.d \
          %{buildroot}%{_localstatedir}/cache/%{name} \
+         %{buildroot}%{_localstatedir}/log/%{name} \
          %{buildroot}%{_tmpfilesdir}
 
 install -pm 0755 %{SOURCE1} %{buildroot}%{_sbindir}/
@@ -206,13 +207,15 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 %exclude %{_presetdir}/95-akmods.preset
 %endif
 %{_usrsrc}/akmods
-%attr(-,akmods,akmods) %{_localstatedir}/cache/akmods
+%dir %attr(-,akmods,akmods) %{_localstatedir}/cache/akmods
+%dir %attr(0775,root,akmods) %{_localstatedir}/log/%{name}
 %{_mandir}/man1/*
 
 
 %changelog
 * Thu Jan 27 2022 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.7-6
 - Adapt usage of lockfile to systemd-tmpfiles
+- Re-locate akmods logs in /var/log
 
 * Wed Jan 26 2022 Timothée Ravier <tim@siosm.fr> - 0.5.7-5
 - Use kernel*-core variants in conditional Suggests
