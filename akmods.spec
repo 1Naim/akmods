@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        6%{?dist}
+Release:        7%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -65,9 +65,9 @@ Requires:       kernel-abi-whitelists
 Requires:       kernel-devel-uname-r
 # kernel-devel-matched enforces the same kernel version as the -devel
 %if 0%{?fedora} >= 36 || 0%{?rhel} >= 9
-Suggests:       (kernel-debug-devel-matched if kernel-debug-core)
-Suggests:       (kernel-devel-matched if kernel-core)
-Suggests:       (kernel-lpae-devel-matched if kernel-lpae-core)
+Requires:       (kernel-debug-devel-matched if kernel-debug-core)
+Requires:       (kernel-devel-matched if kernel-core)
+Requires:       (kernel-lpae-devel-matched if kernel-lpae-core)
 %else
 Suggests:       (kernel-debug-devel if kernel-debug)
 Suggests:       (kernel-devel if kernel)
@@ -213,6 +213,9 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Wed Mar 09 2022 Timothée Ravier <tim@siosm.fr> - 0.5.7-7
+- Use 'Require' instead of 'Suggest' for kernel*-devel packages.
+
 * Thu Jan 27 2022 Nicolas Viéville <nicolas.vieville@uphf.fr> - 0.5.7-6
 - Adapt usage of lockfile to systemd-tmpfiles
 - Re-locate akmods logs in /var/log
