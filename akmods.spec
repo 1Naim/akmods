@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        7%{?dist}
+Release:        8%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -213,6 +213,10 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Wed May 04 2022 Nicolas Chauvet <kwizart@gmail.com> - 0.5.7-8
+- Fix logrotate permission access to /var/log/akmods directory - rhbz#2078490
+- Rename logrotate config file
+
 * Wed Mar 09 2022 Timothée Ravier <tim@siosm.fr> - 0.5.7-7
 - Use 'Require' instead of 'Suggest' for kernel*-devel packages.
 
