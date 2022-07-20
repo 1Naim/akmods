@@ -1,6 +1,6 @@
 Name:           akmods
 Version:        0.5.7
-Release:        8%{?dist}
+Release:        9%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -213,6 +213,9 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Wed Jul 20 2022 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.7-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_37_Mass_Rebuild
+
 * Wed May 04 2022 Nicolas Chauvet <kwizart@gmail.com> - 0.5.7-8
 - Fix logrotate permission access to /var/log/akmods directory - rhbz#2078490
 - Rename logrotate config file
