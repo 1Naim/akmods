@@ -285,9 +285,7 @@ buildinstall_kmod()
 
 	# copy rpmbuild log to kmod specific logfile
 	if [[ -s "${tmpdir}"/akmodsbuild.log ]] ; then
-		while read line ; do
-			echo "$(date +%Y/%m/%d\ %H:%M:%S) akmodsbuild: ${line}" >> "${kmodlogfile}"
-		done < "${tmpdir}"/akmodsbuild.log
+		sed -e "s|^|$(date +%Y/%m/%d\ %H:%M:%S) akmodsbuild: |" "${tmpdir}"/akmodsbuild.log >> "${kmodlogfile}"
 	fi
 
 	# result
