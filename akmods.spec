@@ -48,7 +48,7 @@ Requires:       openssl
 
 # this should track in all stuff that is normally needed to compile modules:
 Requires:       bzip2 coreutils diffutils file findutils gawk gcc grep
-Requires:       gzip make sed tar unzip util-linux which rpm-build
+Requires:       gzip make sed tar unzip util-linux rpm-build
 
 # On EL, kABI list was renamed
 %if 0%{?rhel}
