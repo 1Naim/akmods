@@ -113,7 +113,7 @@ if [[ -e /etc/pki/akmods/certs/${KEYNAME}.der ]] ; then
     # system. It is therefore impossible to test the presence of the key
     # in MOK, and then do not add special suffix to the backup file.
     #
-    if $(which mokutil &> /dev/null) && $(mokutil --help &> /dev/null) && $(mokutil --test-key /etc/pki/akmods/certs/${KEYNAME}.der &> /dev/null) ; then
+    if command -v mokutil && $(mokutil --test-key /etc/pki/akmods/certs/${KEYNAME}.der &> /dev/null) ; then
 	KEY_SUFF="${KEY_SUFF}_already_enrolled"
     fi
     mv /etc/pki/akmods/certs/${KEYNAME}.der /etc/pki/akmods/certs/${KEYNAME}.der.${KEY_SUFF}.bak
