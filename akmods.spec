@@ -1,6 +1,6 @@
 Name:           akmods
-Version:        0.5.7
-Release:        10%{?dist}
+Version:        0.5.8
+Release:        1%{?dist}
 Summary:        Automatic kmods build and install tool
 
 License:        MIT
@@ -224,6 +224,12 @@ useradd -r -g akmods -d /var/cache/akmods/ -s /sbin/nologin \
 
 
 %changelog
+* Fri May 5 2023 Nicolas Chauvet <kwizart@gmail.com> - 0.5.8-1
+- Don't emit weak-deps from deprecated arches on all
+- Allow akmods --rebuild to force rebuild+reinstall - rhbz#2140012
+- ensure to build for grub or systemd-boot default kernel - rhbz#2124086
+- Drop "which" as akmods dependency
+
 * Wed Jan 18 2023 Fedora Release Engineering <releng@fedoraproject.org> - 0.5.7-10
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_38_Mass_Rebuild
 
