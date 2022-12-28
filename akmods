@@ -304,10 +304,10 @@ buildinstall_kmod()
 	akmods_echo 1 4 "Installing newly built rpms"
 	if [[ -f /usr/bin/dnf ]] ; then
 		akmods_echo 1 4 "DNF detected"
-		dnf -y install --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
+		dnf -y ${pkg_install:-install} --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
 	else
 		akmods_echo 1 4 "DNF not found, using YUM instead."
-		yum -y install --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
+		yum -y ${pkg_install:-install} --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
 	fi
 	local returncode=$?
 
@@ -340,6 +340,12 @@ check_kmod_up2date()
 {
 	local this_kernelver=${1}
 	local this_kmodname=${2}
+
+	# with --rebuild we should always build
+	if [[ -n "${rebuild}" ]]; then
+		return 1
+	fi
+
 	local kmodpackage_file="$(modinfo ${this_kmodname} -k ${this_kernelver} -n 2>/dev/null)"
 
 	# kmod present, even with weak-modules?
@@ -471,6 +477,7 @@ myprog_help ()
 	echo " --force             -- try all, even if they failed earlier"
 	echo " --kernels <kernel>  -- build and install only for kernel <kernel>"
 	echo "                        (formatted the same as 'uname -r' would produce)"
+	echo " --rebuild           -- rebuild all, even if they are up to date"
 	echo " --akmod <akmod>     -- build and install only akmod <akmod>"
 }
 
@@ -535,6 +542,11 @@ while [ "${1}" ] ; do
 			;;
 		--from-posttrans|--from-kernel-posttrans|--from-akmod-posttrans)
 			# ignored
+			shift
+			;;
+		--rebuild)
+			rebuild=true
+			pkg_install=reinstall
 			shift
 			;;
 		--verbose)
