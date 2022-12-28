@@ -100,6 +100,11 @@ Requires(postun): systemd
 # Optional but good to have on recent kernel
 Requires: pkgconfig(libelf)
 
+# We need grubby or systemd-boot to know the default kernel
+# On EL7 assumes grubby is there by default - rhbz#2124086
+%if 0%{?fedora} || 0%{?rhel} > 7
+Requires: (grubby or systemd-boot)
+%endif
 
 %description
 Akmods startup script will rebuild akmod packages during system
