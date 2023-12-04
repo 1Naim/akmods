@@ -190,12 +190,12 @@ init ()
 	# IMPORTANT: "bootctl is-installed" check that systemd-boot is installed only.
 	# It doesn't check if systemd-boot is the default loader.
 	# So we assume grubby results if available
-	if command -v grubby >/dev/null 2>&1 ; then
+	if [ ! -h /usr/sbin/grubby ] &&  command -v grubby >/dev/null 2>&1 ; then
 		default_kernel=$(grubby --default-kernel | sed -e 's/^.*vmlinuz-//')
 	elif bootctl is-installed >/dev/null 2>&1 ; then
 		# Leave jq as optional - isDefault requires systemd 253
 		if command -v jq >/dev/null ; then
-			default_kernel="$(bootctl list  --json=short | jq  '.[] | select(.isDefault).version')"
+			default_kernel="$(bootctl list  --json=short | jq -r '.[] | select(.isDefault).version')"
 		fi
 	else # They use neither systemd-boot nor grub2
 		echo -n "Unable to figure out the default kernel" >&2
