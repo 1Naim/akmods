@@ -320,10 +320,10 @@ buildinstall_kmod()
 	akmods_echo 1 4 "Installing newly built rpms"
 	if [[ -f /usr/bin/dnf ]] ; then
 		akmods_echo 1 4 "DNF detected"
-		dnf -y ${pkg_install:-install} --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
+		dnf -y ${pkg_install:-install} --nogpgcheck --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
 	else
 		akmods_echo 1 4 "DNF not found, using YUM instead."
-		yum -y ${pkg_install:-install} --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
+		yum -y ${pkg_install:-install} --nogpgcheck --disablerepo='*' $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) >> "${kmodlogfile}" 2>&1
 	fi
 	local returncode=$?
 
