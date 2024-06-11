@@ -370,6 +370,14 @@ check_kmod_up2date()
 		return 1
 	fi
 
+	# special case where part of the kmod is mainlined using $this_kmodname
+	# making $kmodpackage_file non zero when the kmod is not install yet
+	if [[ "${kmodpackage_file}" == "/lib/modules/${this_kernelver}/"* ]] && \
+	   [[ ! -d /lib/modules/${this_kernelver}/extra/${this_kmodname}/ ]] ; then
+		# build it
+		return 1
+	fi
+
 	# kmod up2date?
 	# Weak module symlink case
 	if [ -n "${kmodpackage_file}" ] && [ -h "${kmodpackage_file}" ] && $(echo "${kmodpackage_file}" | grep -q "weak-updates") ; then
