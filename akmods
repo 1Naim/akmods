@@ -577,6 +577,8 @@ while [ "${1}" ] ; do
 			# Clean old logs and rpm files from no more installed kmod
 			# packages.
 			cleanup_cachedir
+			# akmods --from-init only operates on current kernel
+			kernels="$(uname -r)"
 			shift
 			;;
 		--from-posttrans|--from-kernel-posttrans|--from-akmod-posttrans)
