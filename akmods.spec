@@ -52,11 +52,7 @@ Requires:       gzip make sed tar unzip util-linux rpm-build
 
 # On EL, kABI list was renamed
 %if 0%{?rhel}
-%if 0%{?rhel} >= 8
-Requires:       (kernel-abi-stablelists if kernel)
-%else
-Requires:       kernel-abi-whitelists
-%endif
+Requires:       (kernel-abi-stablelists if kernel-core)
 %endif
 
 %if 0%{?fedora} || 0%{?rhel} > 7
