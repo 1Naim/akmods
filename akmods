@@ -236,15 +236,16 @@ check_kernel_devel()
 		 [[ ! -r /lib/modules/"${1}"/build/Makefile ]] ; then
 		echo "Could not find files needed to compile modules for ${1}"
 		echo "Are the development files for kernel ${1} or the appropriate kernel-devel package installed?"
-		exit 1
+		return 1
 	elif [[ -r /usr/src/kernels/"${1}"/Makefile ]] && \
 		 [[ ! -d /lib/modules/"${1}" ]] ; then
 		# this is a red hat / fedora kernel-devel package, but the kernel for it is not installed
 		# kmodtool would add a dep on that kernel when building; thus when we'd try to install the
 		# rpms we'd run into a missing-dep problem. Thus we prevent that case
 		echo "Kernel ${1} not installed"
-		exit 1
+		return 1
 	fi
+	return 0
 }
 
 check_default_kernel()
