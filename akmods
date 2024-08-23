@@ -268,11 +268,18 @@ check_default_kernel()
 		default_kernel=""
 	fi
 
-	check_kernel_devel "${default_kernel}"
-
-	if ! $(echo "${kernels}" | grep -q "${default_kernel}") ; then
-		kernels="${kernels} ${default_kernel}"
+	if [[ x${default_kernel} == x"$(uname -r)" ]] ; then
+		local _kernels="${default_kernel}"
+	else
+		local _kernels="${default_kernel} $(uname -r)"
 	fi
+
+	for _kernel in ${_kernels} ; do
+		if [[ $(check_kernel_devel "${_kernel}" == 0) ]] ; then
+			kernels="${kernels} ${_kernel}"
+		fi
+	done
+
 }
 
 buildinstall_kmod()
@@ -541,7 +548,10 @@ while [ "${1}" ] ; do
 				exit 1
 			fi
 
-			check_kernel_devel "${1}"
+			if [[ $(check_kernel_devel "${1}" != 0) ]] ; then
+				echo "ERROR: kernel or kernel-devel required for ${1}" >&2
+				exit 1
+			fi
 
 			# overwrites the default:
 			if [[ ! -n "${kernels}" ]] ; then
