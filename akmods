@@ -629,7 +629,7 @@ done
 init
 
 # only check for default_kernel if no value have been parsed
-if  [ -z ${kernels} ] ; then
+if  [ -z "${kernels}" ] ; then
 	check_default_kernel
 fi
 
