@@ -55,35 +55,18 @@ Requires:       gzip make sed tar unzip util-linux rpm-build
 Requires:       (kernel-abi-stablelists if kernel-core)
 %endif
 
-%if 0%{?fedora} || 0%{?rhel} > 7
 # We use a virtual provide that would match either
 # kernel-devel or kernel-PAE-devel
 Requires:       kernel-devel-uname-r
 # kernel-devel-matched enforces the same kernel version as the -devel
-%if 0%{?fedora} >= 36 || 0%{?rhel} >= 9
+%if 0%{?fedora} || 0%{?rhel} >= 9
 Requires:       (kernel-debug-devel-matched if kernel-debug-core)
 Requires:       (kernel-devel-matched if kernel-core)
-%ifarch %{arm}
-Requires:       (kernel-lpae-devel-matched if kernel-lpae-core)
-%endif
 %else
-Suggests:       (kernel-debug-devel if kernel-debug)
-Suggests:       (kernel-devel if kernel)
-%ifarch %{arm}
-Suggests:       (kernel-lpae-devel if kernel-lpae)
-%endif
-%endif
-%ifarch %{ix86}
-Suggests:       (kernel-PAE-devel if kernel-PAE)
-Suggests:       (kernel-PAEdebug-devel if kernel-PAEdebug)
-# Theses are from planetccrma-core or rhel-7-server-rt-rpms
-Suggests:       (kernel-rtPAE-devel if kernel-rtPAE)
+Suggests:       (kernel-debug-devel if kernel-debug-core)
+Suggests:       (kernel-devel if kernel-core)
 %endif
 Suggests:       (kernel-rt-devel if kernel-rt)
-%else
-# There is no much variant there, so using a sane default
-Requires:       kernel-devel
-%endif
 
 # we create a special user that used by akmods to build kmod packages
 Requires(pre):  shadow-utils
