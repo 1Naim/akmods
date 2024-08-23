@@ -1,5 +1,5 @@
 Name:           akmods
-Version:        0.5.9
+Version:        0.5.10
 Release:        %autorelease
 Summary:        Automatic kmods build and install tool
 
