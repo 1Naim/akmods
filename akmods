@@ -505,9 +505,6 @@ myprog_help ()
 	echo " --akmod <akmod>     -- build and install only akmod <akmod>"
 }
 
-# Call INIT to INIT the defaults, that are overwritten in the argument parser!
-init
-
 
 # first parse command line options
 while [ "${1}" ] ; do
@@ -599,6 +596,9 @@ while [ "${1}" ] ; do
 			;;
 	esac
 done
+
+# sanity checks
+init
 
 # go
 for kernel in ${kernels} ; do
