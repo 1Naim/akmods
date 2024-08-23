@@ -23,9 +23,9 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
-echo "Building modules for all installed kernels."
-for kernel in /usr/src/kernels/* ; do
-	kernel=$(basename $kernel)
-	/usr/sbin/akmods --kernels $kernel
-done
+echo "This akmods-shutdown script is deprecated and will be removed in the future"
+echo "Using akmods instead ..."
 
+sleep 6
+
+/usr/sbin/akmods
