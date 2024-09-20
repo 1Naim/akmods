@@ -1,9 +1,11 @@
 #!/bin/bash
-#
-# kmodgenca - Helper script to create CA/Keypair to sign modules.
+
+# NAME: 'kmodgenca'
+# PURPOSE: Helper script to create CA/Keypair to sign modules.
 # Copyright (c) 2017 Stanislas Leduc <stanislas.leduc@balinor.net>
 # Copyright (c) 2018-2019 Nicolas Viéville <nicolas.vieville@uphf.fr>
-#
+
+################################################################################
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
 # "Software"), to deal in the Software without restriction, including
@@ -22,17 +24,32 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
-MYPROG="kmodgenca"
-MYVER="0.5.7"
+################################################################################
+
+# DECLARE CONSTANTS
+# Strings
+readonly SCRIPT_NAME="kmodgenca"
+readonly SCRIPT_VERSION="0.5.7"
+
+# Directories
+readonly AKMODS_DIR="/etc/pki/akmods"
+readonly PRIVATE_KEY_DIR="${AKMODS_DIR}/private"
+readonly PUBLIC_KEY_DIR="${AKMODS_DIR}/certs"
+
+# Paths
+readonly PRIVATE_KEY_PATH="${PRIVATE_KEY_DIR}/private_key.priv"
+readonly PUBLIC_KEY_PATH="${PUBLIC_KEY_DIR}/public_key.der"
+readonly CACERT_CONFIG_PATH="${AKMODS_DIR}/cacert.config"
+readonly RESTORECON_PATH="/usr/sbin/restorecon"
+
+# DECLARE VARIABLES
 FORCE_BUILD=0
 AUTOMATIC_BUILD=0
 AUTOMATIC_BUILD_OPTION=""
 
-myprog_help ()
-{
+function help () {
     echo "Build CA/Keypair to sign modules"
-    echo $'\n'"Usage: ${MYPROG} [OPTIONS]"
+    echo $'\n'"Usage: ${SCRIPT_NAME} [OPTIONS]"
     echo $'\n'"Options:"
     echo " -a, --auto          -- generate default values for cacert.config file without prompt"
     echo " -f, --force         -- build CA/Keypair even if there is already ones"
@@ -42,7 +59,6 @@ myprog_help ()
 
 
 # Parse command line options.
-#
 while [ "${1}" ] ; do
     case "${1}" in
 	-a|--auto)
@@ -54,71 +70,70 @@ while [ "${1}" ] ; do
 	    shift
 	    ;;
 	-h|--help)
-	    myprog_help
+	    help
 	    exit 0
 	    ;;
 	-V|--version)
-	    echo "${MYPROG} ${MYVER}"
+	    echo "${SCRIPT_NAME} ${SCRIPT_VERSION}"
 	    exit 0
 	    ;;
 	*)
 	    echo "Error: Unknown option '${1}'." >&2
-	    myprog_help >&2
+	    help >&2
 	    exit 2
 	    ;;
     esac
 done
 
-# Exit early if cert and private key already exist and if FORCE_BUILD
-# is not equal to 1.
-#
-if $(readlink -e /etc/pki/akmods/certs/public_key.der &>/dev/null) && \
-   $(readlink -e /etc/pki/akmods/private/private_key.priv &>/dev/null) && \
-   [ ${FORCE_BUILD} -eq 0 ] ; then
+# Terminate the script when:
+#   1. Both a certificate (public key) and private key already exist, AND
+#   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT set to '1')
+if $(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null) && \
+   $(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null) && \
+   [ "$FORCE_BUILD" -eq 0 ]; then
     exit 0
 fi
 
-CACERT_CONFIG="/etc/pki/akmods/cacert.config"
+
 KEYNAME="$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')"
 
 # Create cacert.config file with local values if AUTOMATIC_BUILD is set
 # or ask for values manually.
-#
 echo "Update cacert.config..."
 if [ ${AUTOMATIC_BUILD} -eq 1 ] ; then
     # Set OpenSSL fields values, comment default values and min/max ones.
     sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
         -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
-	-e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
-	-e "s#\(localityName *= \).*#\1None#" \
-	-e "s#\(stateOrProvinceName *= \).*#\1None#" \
-	-e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
-	-e "s#\(commonName *= \).*#\1$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')#" \
-	-e "s/^[^#]*_default *= /#&/" \
-	-e "s/^[^#]*_min/#&/" \
-	-e "s/^[^#]*_max/#&/" ${CACERT_CONFIG}.in > ${CACERT_CONFIG}
+	    -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
+	    -e "s#\(localityName *= \).*#\1None#" \
+	    -e "s#\(stateOrProvinceName *= \).*#\1None#" \
+	    -e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
+	    -e "s#\(commonName *= \).*#\1$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')#" \
+	    -e "s/^[^#]*_default *= /#&/" \
+	    -e "s/^[^#]*_min/#&/" \
+	    -e "s/^[^#]*_max/#&/" ${CACERT_CONFIG_PATH}.in > ${CACERT_CONFIG_PATH}
     AUTOMATIC_BUILD_OPTION=" -batch"
 else
     # Activate prompt directive.
-    sed -e "s#\(prompt *= \).*#\1yes#" ${CACERT_CONFIG}.in > ${CACERT_CONFIG}
+    sed -e "s#\(prompt *= \).*#\1yes#" ${CACERT_CONFIG_PATH}.in > ${CACERT_CONFIG_PATH}
 fi
+
 KEY_SUFF="$(date "+%F_%T_%N")"
-# If cert and private key files names already exists, do not overwrite
-# them but save them.
-#
-if [[ -e /etc/pki/akmods/certs/${KEYNAME}.der ]] ; then
-    # If the cert has already been loaded in MOK, add "already_enrolled"
-    # to the suffix of the backup file.
+
+# If cert and private key files names already exists, do not overwrite them but save them.
+if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
+    # If the cert has already been loaded in MOK, add "already_enrolled" to the suffix of the backup file.
     # `mokutil --help` fails if EFI variables are not supported on the
     # system. It is therefore impossible to test the presence of the key
     # in MOK, and then do not add special suffix to the backup file.
-    #
-    if command -v mokutil && $(mokutil --test-key /etc/pki/akmods/certs/${KEYNAME}.der &> /dev/null) ; then
-	KEY_SUFF="${KEY_SUFF}_already_enrolled"
+    if command -v mokutil && $(mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &> /dev/null) ; then
+	    KEY_SUFF="${KEY_SUFF}_already_enrolled"
     fi
-    mv /etc/pki/akmods/certs/${KEYNAME}.der /etc/pki/akmods/certs/${KEYNAME}.der.${KEY_SUFF}.bak
-    if [[ -e /etc/pki/akmods/private/${KEYNAME}.priv ]] ; then
-	mv /etc/pki/akmods/private/${KEYNAME}.priv /etc/pki/akmods/private/${KEYNAME}.priv.${KEY_SUFF}.bak
+    
+    mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFF}.bak"
+    
+    if [[ -e "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]] ; then
+	    mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFF}.bak"
     fi
 fi
 
@@ -126,26 +141,24 @@ echo "Generate new keypair..."
 sg akmods -c "
 umask 037
 openssl req -x509 -new -nodes -utf8 -sha256 -days 3650${AUTOMATIC_BUILD_OPTION} \
- -config ${CACERT_CONFIG} -outform DER \
- -out /etc/pki/akmods/certs/${KEYNAME}.der \
- -keyout /etc/pki/akmods/private/${KEYNAME}.priv
+ -config ${CACERT_CONFIG_PATH} -outform DER \
+ -out "${PUBLIC_KEY_DIR}/${KEYNAME}.der" \
+ -keyout "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
 "
 
 # Ensure that akmods group can read keys.
-#
-chmod g+r /etc/pki/akmods/certs/${KEYNAME}.*
-chmod g+r /etc/pki/akmods/private/${KEYNAME}.*
+chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.*"
+chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.*"
 
 # Sanitize permissions.
-#
-if [[ -x /usr/sbin/restorecon ]] ; then
-    /usr/sbin/restorecon /etc/pki/akmods/certs/${KEYNAME}.der
-    /usr/sbin/restorecon /etc/pki/akmods/private/${KEYNAME}.priv
+if [[ -x "$RESTORECON_PATH" ]] ; then
+    $RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
+    $RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
 fi
 
 # Update symlink to use new keypair.
-#
-ln -nsf /etc/pki/akmods/certs/${KEYNAME}.der /etc/pki/akmods/certs/public_key.der
-ln -nsf /etc/pki/akmods/private/${KEYNAME}.priv /etc/pki/akmods/private/private_key.priv
+ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/public_key.der"
+ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/private_key.priv"
 
+# Exit script.
 exit 0
