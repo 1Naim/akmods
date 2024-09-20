@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # NAME: 'kmodgenca'
 # PURPOSE: Helper script to create CA/key pair to sign modules.
