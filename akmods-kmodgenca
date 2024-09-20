@@ -26,10 +26,19 @@
 # SOFTWARE.
 ################################################################################
 
+# EXIT STATUSES
+# 0 - SUCCESS
+# 1 - INVALID ARGUMENT
+# 2 - BROKEN EXISTING KEY PAIR
+
 # DECLARE CONSTANTS
-# Strings
+# Script Information
 readonly SCRIPT_NAME="kmodgenca"
 readonly SCRIPT_VERSION="0.5.7"
+
+# New Key Pair Name (Hostname + 32-Bit Unsigned Integer)
+KEYNAME="$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')"
+readonly KEYNAME
 
 # Directories
 readonly AKMODS_DIR="/etc/pki/akmods"
@@ -45,6 +54,7 @@ readonly RESTORECON_PATH="/usr/sbin/restorecon"
 # ANSI
 readonly BOLD_RED_TEXT="\e[1;31m"
 readonly BOLD_YELLOW_TEXT="\e[1;33m"
+readonly BOLD_GREEN_TEXT="\033[1;32m"
 readonly CLEAR_TEXT="\e[0m"
 
 # DECLARE VARIABLES
@@ -52,6 +62,7 @@ FORCE_BUILD=0
 AUTOMATIC_BUILD=0
 AUTOMATIC_BUILD_OPTION=""
 
+# FUNCTIONS
 function help() {
     echo "Creates a Certificate Authority (CA) and key pair for module signing."
     echo -e "\nUsage: ${SCRIPT_NAME} [OPTIONS]"
@@ -62,50 +73,84 @@ function help() {
     echo "  -V, --version        Display script version information."
 }
 
+function parse_arguments() {
+	while [ "$1" ] ; do
+		case "$1" in
+		-a|--auto)
+			AUTOMATIC_BUILD=1
+			shift
+			;;
+		-f|--force)
+			FORCE_BUILD=1
+			shift
+			;;
+		-h|--help)
+			help
+			exit 0
+			;;
+		-V|--version)
+			echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
+			exit 0
+			;;
+		*)
+			echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'." >&2
+			help >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+function check_broken_key_pair() {
+	# Terminate the script when:
+	#   1. A certificate (public key) OR private key exists (but not both), AND
+	#   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
+	local pub_key_exists=$(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+	local pri_key_exists=$(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+
+	if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
+		# Notify user.
+		echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR."
+		echo "Both a public key and a private key must exist."
+		echo "Currently, only a single key is present."
+
+		# Dynamic status output with colours.
+		echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
+		echo -e "    ${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
+		echo "Quitting."
+
+		# Exit script.
+		exit 2
+	fi
+}
+
+function check_existing_key_pair() {
+	# Terminate the script when:
+	#   1. Both a certificate (public key) and private key already exist, AND
+	#   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
+	if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
+		readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
+		[ "$FORCE_BUILD" -eq 0 ]; then
+
+		# Notify user.
+		echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
+		echo "Please specify argument '--force' to overwrite the existing key pair."
+		echo "Quitting."
+
+		# Exit script.
+		exit 0
+	fi
+}
+
+# SCRIPT MAINLINE
 # Parse any supplied arguments.
-while [ "$1" ] ; do
-    case "$1" in
-	-a|--auto)
-	    AUTOMATIC_BUILD=1
-	    shift
-	    ;;
-	-f|--force)
-	    FORCE_BUILD=1
-	    shift
-	    ;;
-	-h|--help)
-	    help
-	    exit 0
-	    ;;
-	-V|--version)
-	    echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
-	    exit 0
-	    ;;
-	*)
-	    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} Unknown option '${1}'." >&2
-	    help >&2
-	    exit 1
-	    ;;
-    esac
-done
+parse_arguments "$@"
 
-# Terminate the script when:
-#   1. Both a certificate (public key) and private key already exist, AND
-#   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT set to '1')
-if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
-    readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
-    [ "$FORCE_BUILD" -eq 0 ]; then
+# Check for broken key pairs.
+check_broken_key_pair
 
-    # Notify user.
-    echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
-	echo "Please specify argument '--force' to overwrite the existing key pair."
-	echo "Quitting."
-
-	# Exit script.
-	exit 0
-fi
-
-KEYNAME="$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')"
+# Check for existing key pair.
+check_existing_key_pair
 
 # Create cacert.config file with local values if AUTOMATIC_BUILD is set
 # or ask for values manually.
@@ -136,7 +181,7 @@ if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
     # `mokutil --help` fails if EFI variables are not supported on the
     # system. It is therefore impossible to test the presence of the key
     # in MOK, and then do not add special suffix to the backup file.
-	if command -v mokutil && mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &> /dev/null; then
+	if command -v mokutil && mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &>/dev/null; then
 	    KEY_SUFF="${KEY_SUFF}_already_enrolled"
     fi
     
