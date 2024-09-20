@@ -42,25 +42,29 @@ readonly PUBLIC_KEY_PATH="${PUBLIC_KEY_DIR}/public_key.der"
 readonly CACERT_CONFIG_PATH="${AKMODS_DIR}/cacert.config"
 readonly RESTORECON_PATH="/usr/sbin/restorecon"
 
+# ANSI
+readonly BOLD_RED_TEXT="\e[1;31m"
+readonly BOLD_YELLOW_TEXT="\e[1;33m"
+readonly CLEAR_TEXT="\e[0m"
+
 # DECLARE VARIABLES
 FORCE_BUILD=0
 AUTOMATIC_BUILD=0
 AUTOMATIC_BUILD_OPTION=""
 
-function help () {
-    echo "Build CA/Keypair to sign modules"
-    echo $'\n'"Usage: ${SCRIPT_NAME} [OPTIONS]"
-    echo $'\n'"Options:"
-    echo " -a, --auto          -- generate default values for cacert.config file without prompt"
-    echo " -f, --force         -- build CA/Keypair even if there is already ones"
-    echo " -h, --help          -- print usage"
-    echo " -V, --version       -- show version"
+function help() {
+    echo "Creates a Certificate Authority (CA) and key pair for module signing."
+    echo -e "\nUsage: ${SCRIPT_NAME} [OPTIONS]"
+    echo -e "\nOptions:"
+    echo "  -a, --auto           Utilise default values for 'cacert.config'."
+    echo "  -f, --force          Create CA/Keypair even if one already exists."
+    echo "  -h, --help           Display this help message."
+    echo "  -V, --version        Display script version information."
 }
 
-
-# Parse command line options.
-while [ "${1}" ] ; do
-    case "${1}" in
+# Parse any supplied arguments.
+while [ "$1" ] ; do
+    case "$1" in
 	-a|--auto)
 	    AUTOMATIC_BUILD=1
 	    shift
@@ -74,13 +78,13 @@ while [ "${1}" ] ; do
 	    exit 0
 	    ;;
 	-V|--version)
-	    echo "${SCRIPT_NAME} ${SCRIPT_VERSION}"
+	    echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
 	    exit 0
 	    ;;
 	*)
-	    echo "Error: Unknown option '${1}'." >&2
+	    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} Unknown option '${1}'." >&2
 	    help >&2
-	    exit 2
+	    exit 1
 	    ;;
     esac
 done
@@ -89,9 +93,16 @@ done
 #   1. Both a certificate (public key) and private key already exist, AND
 #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT set to '1')
 if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
-   readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
-   [ "$FORCE_BUILD" -eq 0 ]; then
-   exit 0
+    readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
+    [ "$FORCE_BUILD" -eq 0 ]; then
+
+    # Notify user.
+    echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
+	echo "Please specify argument '--force' to overwrite the existing key pair."
+	echo "Quitting."
+
+	# Exit script.
+	exit 0
 fi
 
 KEYNAME="$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')"
