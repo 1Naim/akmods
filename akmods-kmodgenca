@@ -87,12 +87,11 @@ done
 # Terminate the script when:
 #   1. Both a certificate (public key) and private key already exist, AND
 #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT set to '1')
-if $(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null) && \
-   $(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null) && \
+if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
+   readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
    [ "$FORCE_BUILD" -eq 0 ]; then
-    exit 0
+   exit 0
 fi
-
 
 KEYNAME="$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')"
 
@@ -107,11 +106,11 @@ if [ ${AUTOMATIC_BUILD} -eq 1 ] ; then
 	    -e "s#\(localityName *= \).*#\1None#" \
 	    -e "s#\(stateOrProvinceName *= \).*#\1None#" \
 	    -e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
-	    -e "s#\(commonName *= \).*#\1$(hostname)"-"$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')#" \
+		-e "s#\(commonName *= \).*#\1$(hostname)-$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')#" \
 	    -e "s/^[^#]*_default *= /#&/" \
 	    -e "s/^[^#]*_min/#&/" \
 	    -e "s/^[^#]*_max/#&/" ${CACERT_CONFIG_PATH}.in > ${CACERT_CONFIG_PATH}
-    AUTOMATIC_BUILD_OPTION=" -batch"
+    AUTOMATIC_BUILD_OPTION="-batch"
 else
     # Activate prompt directive.
     sed -e "s#\(prompt *= \).*#\1yes#" ${CACERT_CONFIG_PATH}.in > ${CACERT_CONFIG_PATH}
@@ -125,7 +124,7 @@ if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
     # `mokutil --help` fails if EFI variables are not supported on the
     # system. It is therefore impossible to test the presence of the key
     # in MOK, and then do not add special suffix to the backup file.
-    if command -v mokutil && $(mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &> /dev/null) ; then
+	if command -v mokutil && mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &> /dev/null; then
 	    KEY_SUFF="${KEY_SUFF}_already_enrolled"
     fi
     
@@ -136,14 +135,26 @@ if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
     fi
 fi
 
-echo "Generate new keypair..."
-sg akmods -c "
-umask 037
-openssl req -x509 -new -nodes -utf8 -sha256 -days 3650${AUTOMATIC_BUILD_OPTION} \
- -config ${CACERT_CONFIG_PATH} -outform DER \
- -out "${PUBLIC_KEY_DIR}/${KEYNAME}.der" \
- -keyout "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
-"
+echo "Generate new key pair..."
+
+# Prepare an OpenSSL command to generate the key pair.
+keypair_generation_command=(
+    "openssl req"									  # Request new certificate
+    "-x509"                                           # X.509 certificate type
+    "-new"                                            # New key pair
+    "-nodes"                                          # No DES
+    "-utf8"                                           # UTF-8 encoding
+    "-sha256"                                         # SHA-256 hash algorithm
+    "-days" "3650"                                    # 10 year cert validity
+    "${AUTOMATIC_BUILD_OPTION}"                       # Empty or "-batch"
+    "-config" "${CACERT_CONFIG_PATH}"                 # Configuration file path
+    "-outform" "DER"                                  # DER output format
+    "-out" "${PUBLIC_KEY_DIR}/${KEYNAME}.der"		  # Public key output path
+    "-keyout" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"    # Private key output path
+)
+
+# Execute the key pair generation command within the 'akmods' group context.
+sg akmods -c "umask 037 && ${keypair_generation_command[*]}"
 
 # Ensure that akmods group can read keys.
 chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.*"
