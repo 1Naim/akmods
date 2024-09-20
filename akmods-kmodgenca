@@ -75,161 +75,161 @@ function help() {
 }
 
 function parse_arguments() {
-	while [ "$1" ] ; do
-		case "$1" in
-		-a|--auto)
-			AUTOMATIC_BUILD=1
-			shift
-			;;
-		-f|--force)
-			FORCE_BUILD=1
-			shift
-			;;
-		-h|--help)
-			help
-			exit 0
-			;;
-		-V|--version)
-			echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
-			exit 0
-			;;
-		*)
-			echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'." >&2
-			help >&2
-			exit 1
-			;;
-		esac
-	done
+    while [ "$1" ] ; do
+        case "$1" in
+        -a|--auto)
+            AUTOMATIC_BUILD=1
+            shift
+            ;;
+        -f|--force)
+            FORCE_BUILD=1
+            shift
+            ;;
+        -h|--help)
+            help
+            exit 0
+            ;;
+        -V|--version)
+            echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
+            exit 0
+            ;;
+        *)
+            echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'." >&2
+            help >&2
+            exit 1
+            ;;
+        esac
+    done
 }
 
 function check_broken_key_pair() {
-	# Terminate the script when:
-	#   1. A certificate (public key) OR private key exists (but not both), AND
-	#   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
+    # Terminate the script when:
+    #   1. A certificate (public key) OR private key exists (but not both), AND
+    #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
 
-	# shellcheck disable=SC2155
-	local pub_key_exists=$(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+    # shellcheck disable=SC2155
+    local pub_key_exists=$(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
 
-	# shellcheck disable=SC2155
-	local pri_key_exists=$(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+    # shellcheck disable=SC2155
+    local pri_key_exists=$(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
 
-	if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
-		# Notify user.
-		echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR."
-		echo "Both a public key and a private key must exist."
-		echo "Currently, only a single key is present."
+    if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
+        # Notify user.
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR."
+        echo "Both a public key and a private key must exist."
+        echo "Currently, only a single key is present."
 
-		# Dynamic status output with colours.
-		echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
-		echo -e "    ${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
-		echo "Quitting."
+        # Dynamic status output with colours.
+        echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
+        echo -e "    ${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
+        echo "Quitting."
 
-		# Exit script.
-		exit 2
-	fi
+        # Exit script.
+        exit 2
+    fi
 }
 
 function check_existing_key_pair() {
-	# Terminate the script when:
-	#   1. Both a certificate (public key) and private key already exist, AND
-	#   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
-	if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
-		readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
-		[ "$FORCE_BUILD" -eq 0 ]; then
+    # Terminate the script when:
+    #   1. Both a certificate (public key) and private key already exist, AND
+    #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
+    if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
+        readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
+        [ "$FORCE_BUILD" -eq 0 ]; then
 
-		# Notify user.
-		echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
-		echo "Please specify argument '--force' to overwrite the existing key pair."
-		echo "Quitting."
+        # Notify user.
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
+        echo "Please specify argument '--force' to overwrite the existing key pair."
+        echo "Quitting."
 
-		# Exit script.
-		exit 0
-	fi
+        # Exit script.
+        exit 0
+    fi
 }
 
 function create_ca_cert_config() {
-	echo "UPDATING '${CACERT_CONFIG_PATH}'..."
-	if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
-		# Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
-		# Set OpenSSL field values.
-		# Comment default and min/max values.
-		sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
-			-e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
-			-e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
-			-e "s#\(localityName *= \).*#\1None#" \
-			-e "s#\(stateOrProvinceName *= \).*#\1None#" \
-			-e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
-			-e "s#\(commonName *= \).*#\1${KEYNAME}#" \
-			-e "s/^[^#]*_default *= /#&/" \
-			-e "s/^[^#]*_min/#&/" \
-			-e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
-		AUTOMATIC_BUILD_OPTION="-batch"
-	else
-		# Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
-		# Request OpenSSL prompt user for values later.
-		sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
-	fi
+    echo "UPDATING '${CACERT_CONFIG_PATH}'..."
+    if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
+        # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
+        # Set OpenSSL field values.
+        # Comment default and min/max values.
+        sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
+            -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
+            -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
+            -e "s#\(localityName *= \).*#\1None#" \
+            -e "s#\(stateOrProvinceName *= \).*#\1None#" \
+            -e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
+            -e "s#\(commonName *= \).*#\1${KEYNAME}#" \
+            -e "s/^[^#]*_default *= /#&/" \
+            -e "s/^[^#]*_min/#&/" \
+            -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
+        AUTOMATIC_BUILD_OPTION="-batch"
+    else
+        # Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
+        # Request OpenSSL prompt user for values later.
+        sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
+    fi
 }
 
 function backup_existing_key_pair() {
-	# Check if the randomly-generated key pair name conflicts with an existing pair.
-	if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
-		# If the public key (certificate) has already been enrolled in the UEFI, append "_enrolled" to the suffix of the backup file.
-		# Note: `mokutil --help` fails if EFI variables are not supported on the system.
-		# If it is impossible to ascertain if the MOK is enrolled in the UEFI, do not add the "_enrolled" suffix to the backup file.
-		if command -v mokutil && mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &>/dev/null; then
-			KEY_SUFFIX="${KEY_SUFFIX}_enrolled"
-		fi
-		
-		# Rename the existing public key with the conflicting name.
-		mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
+    # Check if the randomly-generated key pair name conflicts with an existing pair.
+    if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
+        # If the public key (certificate) has already been enrolled in the UEFI, append "_enrolled" to the suffix of the backup file.
+        # Note: `mokutil --help` fails if EFI variables are not supported on the system.
+        # If it is impossible to ascertain if the MOK is enrolled in the UEFI, do not add the "_enrolled" suffix to the backup file.
+        if command -v mokutil && mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &>/dev/null; then
+            KEY_SUFFIX="${KEY_SUFFIX}_enrolled"
+        fi
 
-		# Rename the existing private key with the conflicting name.
-		if [[ -e "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]] ; then
-			mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
-		fi
-	fi
+        # Rename the existing public key with the conflicting name.
+        mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
+
+        # Rename the existing private key with the conflicting name.
+        if [[ -e "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]] ; then
+            mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
+        fi
+    fi
 }
 
 function create_new_keypair() {
-	echo "CREATING NEW KEY PAIR..."
+    echo "CREATING NEW KEY PAIR..."
 
-	# Prepare an OpenSSL command to generate the key pair.
-	local keypair_generation_command=(
-		"openssl req"									  # Request new certificate
-		"-x509"                                           # X.509 certificate type
-		"-new"                                            # New key pair
-		"-nodes"                                          # No DES
-		"-utf8"                                           # UTF-8 encoding
-		"-sha256"                                         # SHA-256 hash algorithm
-		"-days" "3650"                                    # 10 year cert validity
-		"${AUTOMATIC_BUILD_OPTION}"                       # Empty or "-batch"
-		"-config" "${CACERT_CONFIG_PATH}"                 # Configuration file path
-		"-outform" "DER"                                  # DER output format
-		"-out" "${PUBLIC_KEY_DIR}/${KEYNAME}.der"		  # Public key output path
-		"-keyout" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"    # Private key output path
-	)
+    # Prepare an OpenSSL command to generate the key pair.
+    local keypair_generation_command=(
+        "openssl req"                                     # Request new certificate
+        "-x509"                                           # X.509 certificate type
+        "-new"                                            # New key pair
+        "-nodes"                                          # No DES
+        "-utf8"                                           # UTF-8 encoding
+        "-sha256"                                         # SHA-256 hash algorithm
+        "-days" "3650"                                    # 10 year cert validity
+        "${AUTOMATIC_BUILD_OPTION}"                       # Empty or "-batch"
+        "-config" "${CACERT_CONFIG_PATH}"                 # Configuration file path
+        "-outform" "DER"                                  # DER output format
+        "-out" "${PUBLIC_KEY_DIR}/${KEYNAME}.der"         # Public key output path
+        "-keyout" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"    # Private key output path
+    )
 
-	# Execute the key pair generation command within the 'akmods' group context.
-	# Ensure 'rw-rwx---' permissions.
-	sg akmods -c "umask 037 && ${keypair_generation_command[*]}"
+    # Execute the key pair generation command within the 'akmods' group context.
+    # Ensure 'rw-rwx---' permissions.
+    sg akmods -c "umask 037 && ${keypair_generation_command[*]}"
 }
 
 function set_key_permissions() {
     # Ensure that akmods group can read keys.
-	chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.*"
-	chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.*"
+    chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.*"
+    chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.*"
 
     # Sanitise permissions.
-	if [[ -x "$RESTORECON_PATH" ]] ; then
-		$RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
-		$RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
-	fi
+    if [[ -x "$RESTORECON_PATH" ]] ; then
+        $RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
+        $RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
+    fi
 }
 
 function update_key_symlinks() {
-	ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
-	ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
+    ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
+    ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
 }
 
 # SCRIPT MAINLINE
