@@ -26,7 +26,7 @@
 # SOFTWARE.
 ################################################################################
 
-# EXIT STATUS LOOKUP
+# EXIT STATUS CODES AND DESCRIPTIONS
 # 0 - SUCCESS
 # 1 - INVALID COMMAND LINE ARGUMENT
 # 2 - BROKEN EXISTING KEY PAIR
