@@ -30,6 +30,7 @@
 # 0 - SUCCESS
 # 1 - INVALID ARGUMENT
 # 2 - BROKEN EXISTING KEY PAIR
+# 3 - CA CERT CONFIG MODIFICATION FAILED
 
 # DECLARE CONSTANTS
 # Script Information
@@ -150,6 +151,9 @@ function check_existing_key_pair() {
 function create_ca_cert_config() {
     echo "UPDATING '${CACERT_CONFIG_PATH}'..."
     if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
+        # Set '-batch' argument.
+        AUTOMATIC_BUILD_OPTION="-batch"
+
         # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
         # Set OpenSSL field values.
         # Comment default and min/max values.
@@ -163,11 +167,18 @@ function create_ca_cert_config() {
             -e "s/^[^#]*_default *= /#&/" \
             -e "s/^[^#]*_min/#&/" \
             -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
-        AUTOMATIC_BUILD_OPTION="-batch"
     else
         # Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
         # Request OpenSSL prompt user for values later.
         sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
+    fi
+
+    # Check if 'sed' command failed.
+    if [ $? -ne 0 ]; then
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} CACERT CONFIG FILE MODIFICATION FAILED."
+        echo "Failed to update the CA certificate configuration file at '${CACERT_CONFIG_PATH}'."
+        echo "Quitting."
+        exit 3
     fi
 }
 
