@@ -26,7 +26,7 @@
 # SOFTWARE.
 ################################################################################
 
-# EXIT STATUSES
+# EXIT STATUS LOOKUP
 # 0 - SUCCESS
 # 1 - INVALID ARGUMENT
 # 2 - BROKEN EXISTING KEY PAIR
@@ -109,16 +109,15 @@ function check_broken_key_pair() {
     #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
 
     # shellcheck disable=SC2155
-    local pub_key_exists=$(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+    local pub_key_exists=$(sudo readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
 
     # shellcheck disable=SC2155
-    local pri_key_exists=$(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+    local pri_key_exists=$(sudo readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
 
     if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
         # Notify user.
         echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR."
         echo "Both a public key and a private key must exist."
-        echo "Currently, only a single key is present."
 
         # Dynamic status output with colours.
         echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
@@ -134,8 +133,8 @@ function check_existing_key_pair() {
     # Terminate the script when:
     #   1. Both a certificate (public key) and private key already exist, AND
     #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
-    if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
-        readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
+    if sudo readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
+        sudo readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
         [ "$FORCE_BUILD" -eq 0 ]; then
 
         # Notify user.
@@ -154,10 +153,13 @@ function create_ca_cert_config() {
         # Set '-batch' argument.
         AUTOMATIC_BUILD_OPTION="-batch"
 
+		# Initialise output variable.
+		local sed_output=""
+
         # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
         # Set OpenSSL field values.
         # Comment default and min/max values.
-        sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
+		sed_output=$(sudo sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
             -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
             -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
             -e "s#\(localityName *= \).*#\1None#" \
@@ -166,15 +168,17 @@ function create_ca_cert_config() {
             -e "s#\(commonName *= \).*#\1${KEYNAME}#" \
             -e "s/^[^#]*_default *= /#&/" \
             -e "s/^[^#]*_min/#&/" \
-            -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
+            -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" 2>&1 | sudo tee "$CACERT_CONFIG_PATH" > /dev/null)
     else
         # Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
         # Request OpenSSL prompt user for values later.
-        sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" > "$CACERT_CONFIG_PATH"
+        sed_output=$(sudo sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" | sudo tee "$CACERT_CONFIG_PATH" > /dev/null)
     fi
 
     # Check if 'sed' command failed.
-    if [ $? -ne 0 ]; then
+	# shellcheck disable=SC2181
+    if [ "$?" -ne 0 ]; then
+		echo "$sed_output"
         echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} CACERT CONFIG FILE MODIFICATION FAILED."
         echo "Failed to update the CA certificate configuration file at '${CACERT_CONFIG_PATH}'."
         echo "Quitting."
@@ -186,18 +190,34 @@ function backup_existing_key_pair() {
     # Check if the randomly-generated key pair name conflicts with an existing pair.
     if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
         # If the public key (certificate) has already been enrolled in the UEFI, append "_enrolled" to the suffix of the backup file.
+		# As per 'mokutil/src/mokutil.c' @ https://src.fedoraproject.org/rpms/mokutil.git:
+		#    -1 (255) : General Error.
+		#     0       : Key Not Enrolled.
+		#     1       : Key Enrolled.
         # Note: `mokutil --help` fails if EFI variables are not supported on the system.
         # If it is impossible to ascertain if the MOK is enrolled in the UEFI, do not add the "_enrolled" suffix to the backup file.
-        if command -v mokutil && mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" &>/dev/null; then
-            KEY_SUFFIX="${KEY_SUFFIX}_enrolled"
-        fi
+        if command -v mokutil &>/dev/null; then
+		    local mokutil_output=""
+			local mokutil_exit_status=0
+			mokutil_output=$(sudo mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" 2>&1)
+			mokutil_exit_status="$?"
+
+			if [[ "$mokutil_exit_status" -eq 1 ]]; then
+				KEY_SUFFIX="${KEY_SUFFIX}_enrolled"
+			elif [[ "$mokutil_exit_status" -ne 0 ]]; then
+			    echo "$mokutil_output"
+				echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FAILED TO CHECK CERTIFICATE ENROLLMENT STATUS."
+				echo "Failed to query whether the existing public key (certificate) at '${PUBLIC_KEY_DIR}/${KEYNAME}.der' is already enrolled."
+				echo "Proceeding without appending '_enrolled' to key pair backup."
+			fi
+		fi
 
         # Rename the existing public key with the conflicting name.
-        mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
+        sudo mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
 
         # Rename the existing private key with the conflicting name.
         if [[ -e "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]] ; then
-            mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
+            sudo mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
         fi
     fi
 }
@@ -223,24 +243,24 @@ function create_new_keypair() {
 
     # Execute the key pair generation command within the 'akmods' group context.
     # Ensure 'rw-rwx---' permissions.
-    sg akmods -c "umask 037 && ${keypair_generation_command[*]}"
+    sudo sg akmods -c "umask 037 && ${keypair_generation_command[*]}"
 }
 
 function set_key_permissions() {
     # Ensure that akmods group can read keys.
-    chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.*"
-    chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.*"
+    sudo chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
+    sudo chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
 
     # Sanitise permissions.
     if [[ -x "$RESTORECON_PATH" ]] ; then
-        $RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
-        $RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
+        sudo $RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
+        sudo $RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
     fi
 }
 
 function update_key_symlinks() {
-    ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
-    ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
+    sudo ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
+    sudo ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
 }
 
 # SCRIPT MAINLINE
@@ -267,6 +287,14 @@ set_key_permissions
 
 # Update symlink to use new keypair.
 update_key_symlinks
+
+# Print completion messages.
+echo -e "${BOLD_GREEN_TEXT}SUCCESS!${CLEAR_TEST}"
+echo "Public Key (Certificate) created at:    ${PUBLIC}/${KEYNAME}.der"
+echo "Private Key created at:                 ${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
+echo -e "\nSymlinks:"
+echo "${KEYNAME}.der     -->    ${PUBLIC_KEY_PATH}"
+echo "${KEYNAME}.priv    -->    ${PRIVATE_KEY_PATH}"
 
 # Exit script.
 exit 0
