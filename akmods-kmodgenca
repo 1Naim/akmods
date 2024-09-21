@@ -37,8 +37,8 @@
 readonly SCRIPT_NAME="kmodgenca"
 readonly SCRIPT_VERSION="0.5.7"
 
-# New Key Pair Name (Hostname + 32-Bit Unsigned Integer)
-KEYNAME="$(hostname)-$(od -vAn -N4 -tu4 < /dev/urandom | awk '{print $1}')"
+# Unique New Key Pair Name (Hostname + UNIX/POSIX Timestamp + Dashless UUID)
+KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
 readonly KEYNAME
 
 # Directories
@@ -69,7 +69,6 @@ BAD_ARGS=0
 
 # Other
 AUTOMATIC_BUILD_OPTION=""
-KEY_SUFFIX="$(date "+%F_%T_%N")"
 
 # FUNCTIONS
 function help() {
@@ -139,7 +138,7 @@ function parse_arguments() {
 
     # Display help message and then exit in the event of invalid command line argument(s).
     if [[ "$BAD_ARGS" -eq 1 ]]; then
-        echo -en "\n"
+        echo ""
         help >&2
         exit 1
     fi
@@ -156,16 +155,18 @@ function parse_arguments() {
 
     # Exit script if version and/or help information requested.
     if [ "$SHOW_VER" -eq 1 ] || [ "$SHOW_HELP" -eq 1 ]; then
-        if [ "$AUTOMATIC_BUILD" -eq 1 ] || [ "$FORCE_BUILD" -eq 1 ]; then
-            # Display warning regarding ignoring additional arguments due to displaying help and/or version information.
-            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING ADDITIONAL ARGUMENTS AS HELP AND/OR VERSION INFORMATION REQUESTED."
+        if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
+            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING '-a' (--auto)."
+        fi
+        if [ "$FORCE_BUILD" -eq 1 ]; then
+            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING '-f' (--force)."
         fi
         exit 0
     fi
 
     # Warn user regarding forced builds.
     if [[ "$FORCE_BUILD" -eq 1 ]]; then
-        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FORCED BUILD SELECTED. MOK OVERWRITE MAY OCCUR!"
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FORCED BUILD SELECTED. KEY PAIR OVERWRITE MAY OCCUR!"
     fi
 
     # Warn user regarding automatic builds.
@@ -265,46 +266,6 @@ function create_ca_cert_config() {
     fi
 }
 
-function backup_existing_key_pair() {
-    # Check if the randomly-generated key pair name conflicts with an existing pair.
-    if [[ -e "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]] ; then
-        # If the public key (certificate) has already been enrolled in the UEFI, append "_enrolled" to the suffix of the backup file.
-        # As per 'mokutil/src/mokutil.c' @ https://src.fedoraproject.org/rpms/mokutil.git:
-        #    -1 (255) : General Error.
-        #     0       : Key Not Enrolled.
-        #     1       : Key Enrolled.
-        # Note: `mokutil --help` fails if EFI variables are not supported on the system.
-        # If it is impossible to ascertain if the MOK is enrolled in the UEFI, do not add the "_enrolled" suffix to the backup file.
-        if command -v mokutil &>/dev/null; then
-            local mokutil_output=""
-            local mokutil_exit_status=0
-
-            # Note: Requires superuser permissions (i.e. sudo).
-            mokutil_output=$(mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" 2>&1)
-            mokutil_exit_status="$?"
-
-            if [[ "$mokutil_exit_status" -eq 1 ]]; then
-                KEY_SUFFIX="${KEY_SUFFIX}_enrolled"
-            elif [[ "$mokutil_exit_status" -ne 0 ]]; then
-                echo "$mokutil_output"
-                echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FAILED TO CHECK CERTIFICATE ENROLLMENT STATUS."
-                echo "Failed to query whether the existing public key (certificate) at '${PUBLIC_KEY_DIR}/${KEYNAME}.der' is already enrolled."
-                echo "Proceeding without appending '_enrolled' to key pair backup."
-            fi
-        fi
-
-        # Rename the existing public key with the conflicting name.
-        # Note: Requires superuser permissions (i.e. sudo).
-        mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
-
-        # Rename the existing private key with the conflicting name.
-        if [[ -e "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]] ; then
-            # Note: Requires superuser permissions (i.e. sudo).
-            mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
-        fi
-    fi
-}
-
 function create_new_key_pair() {
     echo "CREATING NEW KEY PAIR..."
 
@@ -364,9 +325,6 @@ check_existing_key_pair
 
 # Create 'cacert.config' using template file 'cacert.config.in'.
 create_ca_cert_config
-
-# Avoid overwriting key pairs with the same randomly-generated name.
-backup_existing_key_pair
 
 # Create new key pair.
 create_new_key_pair
