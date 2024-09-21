@@ -180,11 +180,13 @@ function check_broken_key_pair() {
     #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
 
     # Note: This approach will also detect broken symlinks (i.e., return 0).
+    # Note: Requires superuser permissions (i.e. sudo).
     # shellcheck disable=SC2155
-    local pub_key_exists=$(sudo readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+    local pub_key_exists=$(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
 
+    # Note: Requires superuser permissions (i.e. sudo).
     # shellcheck disable=SC2155
-    local pri_key_exists=$(sudo readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
+    local pri_key_exists=$(readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && echo 1 || echo 0)
 
     if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
         # Notify user.
@@ -207,9 +209,10 @@ function check_existing_key_pair() {
     #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
 
     # Note: This approach will return '1' in the event of a broken symlink.
-    if sudo readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
-        sudo readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
-        [ "$FORCE_BUILD" -eq 0 ]; then
+    # Note: Requires superuser permissions (i.e. sudo).
+    if readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && \
+       readlink -e "$PRIVATE_KEY_PATH" &>/dev/null && \
+       [ "$FORCE_BUILD" -eq 0 ]; then
 
         # Notify user.
         echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
@@ -233,7 +236,8 @@ function create_ca_cert_config() {
         # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
         # Set OpenSSL field values.
         # Comment default and min/max values.
-        sed_output=$(sudo sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
+        # Note: Requires superuser permissions (i.e. sudo).
+        sed_output=$(sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
             -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
             -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
             -e "s#\(localityName *= \).*#\1None#" \
@@ -242,11 +246,12 @@ function create_ca_cert_config() {
             -e "s#\(commonName *= \).*#\1${KEYNAME}#" \
             -e "s/^[^#]*_default *= /#&/" \
             -e "s/^[^#]*_min/#&/" \
-            -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" 2>&1 | sudo tee "$CACERT_CONFIG_PATH" > /dev/null)
+            -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" 2>&1 | tee "$CACERT_CONFIG_PATH" > /dev/null)
     else
         # Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
         # Request OpenSSL prompt user for values later.
-        sed_output=$(sudo sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" | sudo tee "$CACERT_CONFIG_PATH" > /dev/null)
+        # Note: Requires superuser permissions (i.e. sudo).
+        sed_output=$(sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" | tee "$CACERT_CONFIG_PATH" > /dev/null)
     fi
 
     # Check if 'sed' command failed.
@@ -273,7 +278,9 @@ function backup_existing_key_pair() {
         if command -v mokutil &>/dev/null; then
             local mokutil_output=""
             local mokutil_exit_status=0
-            mokutil_output=$(sudo mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" 2>&1)
+
+            # Note: Requires superuser permissions (i.e. sudo).
+            mokutil_output=$(mokutil --test-key "${PUBLIC_KEY_DIR}/${KEYNAME}.der" 2>&1)
             mokutil_exit_status="$?"
 
             if [[ "$mokutil_exit_status" -eq 1 ]]; then
@@ -287,11 +294,13 @@ function backup_existing_key_pair() {
         fi
 
         # Rename the existing public key with the conflicting name.
-        sudo mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
+        # Note: Requires superuser permissions (i.e. sudo).
+        mv "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "${PUBLIC_KEY_DIR}/${KEYNAME}.der.${KEY_SUFFIX}.bak"
 
         # Rename the existing private key with the conflicting name.
         if [[ -e "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]] ; then
-            sudo mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
+            # Note: Requires superuser permissions (i.e. sudo).
+            mv "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "${PRIVATE_KEY_DIR}/${KEYNAME}.priv.${KEY_SUFFIX}.bak"
         fi
     fi
 }
@@ -317,26 +326,30 @@ function create_new_key_pair() {
 
     # Execute the key pair generation command within the 'akmods' group context.
     # Ensure 'rw-rwx---' permissions.
-    sudo sg akmods -c "umask 037 && ${key_pair_generation_command[*]}"
+    # Note: Requires superuser permissions (i.e. sudo).
+    sg akmods -c "umask 037 && ${key_pair_generation_command[*]}"
 }
 
 function set_key_permissions() {
     # Ensure that akmods group can read keys.
-    sudo chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
-    sudo chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
+    # Note: Requires superuser permissions (i.e. sudo).
+    chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
+    chmod g+r "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
 
     # Sanitise permissions.
+    # Note: Requires superuser permissions (i.e. sudo).
     if [[ -x "$RESTORECON_PATH" ]] ; then
-        sudo $RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
-        sudo $RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
+        $RESTORECON_PATH "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
+        $RESTORECON_PATH "${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
     fi
 }
 
 function update_key_symlinks() {
-    sudo ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
-    sudo ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
-	sudo chown -h root:akmods "$PUBLIC_KEY_PATH"
-	sudo chown -h root:akmods "$PRIVATE_KEY_PATH"
+    # Note: Requires superuser permissions (i.e. sudo).
+    ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
+    ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
+    chown -h root:akmods "$PUBLIC_KEY_PATH"
+    chown -h root:akmods "$PRIVATE_KEY_PATH"
 }
 
 # SCRIPT MAINLINE
