@@ -56,16 +56,24 @@ readonly RESTORECON_PATH="/usr/sbin/restorecon"
 readonly BOLD_RED_TEXT="\e[1;31m"
 readonly BOLD_YELLOW_TEXT="\e[1;33m"
 readonly BOLD_GREEN_TEXT="\033[1;32m"
+readonly BOLD_GREY_TEXT="\e[1;37m"
 readonly CLEAR_TEXT="\e[0m"
 
 # DECLARE VARIABLES
+# Command Line Argument Flags
 FORCE_BUILD=0
 AUTOMATIC_BUILD=0
+SHOW_HELP=0
+SHOW_VER=0
+BAD_ARGS=0
+
+# Other
 AUTOMATIC_BUILD_OPTION=""
 KEY_SUFFIX="$(date "+%F_%T_%N")"
 
 # FUNCTIONS
 function help() {
+    echo -e "${BOLD_GREY_TEXT}KMODGENCA HELP${CLEAR_TEXT}"
     echo "Creates a Certificate Authority (CA) and key pair for module signing."
     echo "Private keys are created in:               '${PRIVATE_KEY_DIR}'."
     echo "Public keys (certificates) are created in: '${PUBLIC_KEY_DIR}'."
@@ -75,6 +83,7 @@ function help() {
     echo "  -f, --force          Create CA/key pair even if one already exists."
     echo "  -h, --help           Display this help message."
     echo "  -V, --version        Display script version information."
+    echo ""
 }
 
 function parse_arguments() {
@@ -89,12 +98,12 @@ function parse_arguments() {
             shift
             ;;
         -h|--help)
-            help
-            exit 0
+            SHOW_HELP=1
+            shift
             ;;
         -V|--version)
-            echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
-            exit 0
+            SHOW_VER=1
+            shift
             ;;
         -*)
             # Handle combined single-letter options.
@@ -107,33 +116,61 @@ function parse_arguments() {
                     FORCE_BUILD=1
                     ;;
                 h)
-                    help
-                    exit 0
+                    SHOW_HELP=1
                     ;;
                 V)
-                    echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
-                    exit 0
+                    SHOW_VER=1
                     ;;
                 *)
-                    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'.\n" >&2
-                    help >&2
-                    exit 1
+                    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1:$i:1}' in '${1}'." >&2
+                    BAD_ARGS=1
                     ;;
                 esac
             done
             shift
             ;;
         *)
-            echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'.\n" >&2
-            help >&2
-            exit 1
+            echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'." >&2
+            BAD_ARGS=1
+            shift
             ;;
         esac
     done
 
-    # Warn user.
+    # Display help message and then exit in the event of invalid command line argument(s).
+    if [[ "$BAD_ARGS" -eq 1 ]]; then
+        echo -en "\n"
+        help >&2
+        exit 1
+    fi
+
+    # Display script help information if requested.
+    if [[ "$SHOW_HELP" -eq 1 ]]; then
+        help
+    fi
+
+    # Display script version information if requested.
+    if [[ "$SHOW_VER" -eq 1 ]]; then
+        "${SCRIPT_NAME} v${SCRIPT_VERSION}"
+    fi
+
+    # Exit script if version and/or help information requested.
+    if [ "$SHOW_VER" -eq 1 ] || [ "$SHOW_HELP" -eq 1 ]; then
+        if [ "$AUTOMATIC_BUILD" -eq 1 ] || [ "$FORCE_BUILD" -eq 1 ]; then
+            # Display warning regarding ignoring additional arguments due to displaying help and/or version information.
+            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING ADDITIONAL ARGUMENTS AS HELP AND/OR VERSION INFORMATION REQUESTED."
+        fi
+        exit 0
+    fi
+
+    # Warn user regarding forced builds.
     if [[ "$FORCE_BUILD" -eq 1 ]]; then
         echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FORCED BUILD SELECTED. MOK OVERWRITE MAY OCCUR!"
+    fi
+
+    # Warn user regarding automatic builds.
+    if [[ "$AUTOMATIC_BUILD" -eq 1 ]]; then
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} AUTOMATIC BUILD SELECTED. USING DEFAULT VALUES FOR CA/KEY PAIR CREATION."
     fi
 }
 
