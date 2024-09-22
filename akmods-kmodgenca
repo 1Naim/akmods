@@ -37,10 +37,6 @@
 readonly SCRIPT_NAME="kmodgenca"
 readonly SCRIPT_VERSION="0.5.7"
 
-# Unique New Key Pair Name (Hostname + UNIX/POSIX Timestamp + Dashless UUID)
-KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
-readonly KEYNAME
-
 # Directories
 readonly AKMODS_DIR="/etc/pki/akmods"
 readonly PRIVATE_KEY_DIR="${AKMODS_DIR}/private"
@@ -66,6 +62,9 @@ AUTOMATIC_BUILD=0
 SHOW_HELP=0
 SHOW_VER=0
 BAD_ARGS=0
+
+# Unique New Key Pair Name (Hostname + UNIX/POSIX Timestamp + Dashless UUID)
+KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
 
 # Other
 AUTOMATIC_BUILD_OPTION=""
@@ -227,6 +226,12 @@ function check_existing_key_pair() {
 
 function create_ca_cert_config() {
     echo "UPDATING '${CACERT_CONFIG_PATH}'..."
+
+    # Handle the extremely unlikely occurrence of a key pair name conflict with an existing key pair.
+    while [ -f "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]; do
+        KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
+    done
+
     if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
         # Set '-batch' argument.
         AUTOMATIC_BUILD_OPTION="-batch"
