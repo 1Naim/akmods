@@ -258,16 +258,19 @@ function request_key_pair_name() {
             #   - Underscore ('_')
             #   - Hyphen ('-')
             if ! [[ $(echo "$key_pair_file_name" | xargs) =~ ^[0-9a-zA-Z._-]+$ ]]; then
-                valid_name=0
+                # Avoid triggering on an empty string.
+                if [[ -n $(echo "$key_pair_file_name" | xargs) ]]; then
+                    valid_name=0
 
-                # Inform user of illegal characters within provided name.
-                local illegal_chars=$(echo "$key_pair_file_name" | awk -F '' '{for(i=1;i<=NF;i++) if ($i !~ /^[0-9a-zA-Z._-]$/) print $i}' | sort -u | tr -d '\n')
-                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT CONTAIN ILLEGAL CHARACTERS."
-                echo -e "Illegal characters in provided name:"
-                for (( i=0; i<${#illegal_chars}; i++ )); do
-                    echo "-    '${illegal_chars:i:1}'"
-                done
-                echo -e "\nPlease ensure the name only contains letters, numbers, periods, underscores and hyphens.\n"
+                    # Inform user of illegal characters within provided name.
+                    local illegal_chars=$(echo "$key_pair_file_name" | awk -F '' '{for(i=1;i<=NF;i++) if ($i !~ /^[0-9a-zA-Z._-]$/) print $i}' | sort -u | tr -d '\n')
+                    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT CONTAIN ILLEGAL CHARACTERS."
+                    echo -e "Illegal characters in provided name:"
+                    for (( i=0; i<${#illegal_chars}; i++ )); do
+                        echo "-    '${illegal_chars:i:1}'"
+                    done
+                    echo -e "\nPlease ensure the name only contains letters, numbers, periods, underscores and hyphens.\n"
+                fi
             fi
 
             # Ensure key pair with same name does not exist.
