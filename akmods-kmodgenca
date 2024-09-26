@@ -274,7 +274,7 @@ function request_key_pair_name() {
             if [ -f "${PUBLIC_KEY_DIR}/${key_pair_file_name}.der" ] || [ -f "${PRIVATE_KEY_DIR}/${key_pair_file_name}.priv" ]; then
                 valid_name=0
                 echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} EXISTING KEY PAIR WITH SAME NAME.\n"
-            if
+            fi
 
             # Break the loop if a valid name was provided.
             if [ "$valid_name" -eq 1 ]; then
