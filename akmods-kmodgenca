@@ -224,6 +224,63 @@ function check_existing_key_pair() {
     fi
 }
 
+function request_key_pair_name() {
+    if [ "$AUTOMATIC_BUILD" -eq 0 ]; then
+        while true; do
+            local key_pair_file_name=""
+            local valid_name=1
+
+            read -p "Key Pair Name: " key_pair_file_name
+
+            # Check for empty string.
+            if [[ -z $(echo "$key_pair_file_name" | xargs) ]]; then
+                valid_name=0
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE EMPTY.\n"
+            fi
+
+            # Ensure name is not '.' or '..'.
+            if [[ $(echo "$key_pair_file_name" | xargs) == "." ]] || [[ $(echo "$key_pair_file_name" | xargs) == ".." ]]; then
+                valid_name=0
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE '.' OR '..'.\n"
+            fi
+
+            # Ensure name is not longer than 255 characters.
+            if [ ${#$(echo "$key_pair_file_name" | xargs)} -gt 255 ]; then
+                valid_name=0
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE LONGER THAN 255 CHARACTERS.\n"
+            fi
+
+            # Ensure name only contains valid characters.
+            # - Letters (A-Z) (a-z)
+            # - Numbers (0-9)
+            # - Special
+            #   - Period ('.')
+            #   - Underscore ('_')
+            #   - Hyphen ('-')
+            if ! [[ $(echo "$key_pair_file_name" | xargs) =~ ^[0-9a-zA-Z._-]+$ ]]; then
+                valid_name=0
+
+                # Inform user of illegal characters within provided name.
+                local illegal_chars=$(echo "$key_pair_file_name" | tr -cd '[^0-9a-zA-Z._-]')
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT CONTAIN ILLEGAL CHARACTERS."
+                echo -e "Illegal characters in provided name:"
+                for (( i=0; i<${#illegal_chars}; i++ )); do
+                    echo "-    '${illegal_chars:i:1}'"
+                done
+                echo -e "\nPlease ensure the name only contains letters, numbers, periods, underscores and hyphens.\n"
+            fi
+
+            # Break the loop if a valid name was provided.
+            if [ "$valid_name" -eq 1 ]; then
+                break
+            fi
+        done
+
+        # Update global key pair name variable.
+        KEYNAME="$key_pair_file_name"
+    fi
+}
+
 function create_ca_cert_config() {
     echo "UPDATING '${CACERT_CONFIG_PATH}'..."
 
@@ -327,6 +384,9 @@ check_broken_key_pair
 
 # Check for existing key pair.
 check_existing_key_pair
+
+# Request user for key pair name.
+request_key_pair_name
 
 # Create 'cacert.config' using template file 'cacert.config.in'.
 create_ca_cert_config
