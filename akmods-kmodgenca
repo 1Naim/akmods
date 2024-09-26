@@ -245,7 +245,7 @@ function request_key_pair_name() {
             fi
 
             # Ensure name is not longer than 255 characters.
-            if [ ${#$(echo "$key_pair_file_name" | xargs)} -gt 255 ]; then
+            if [ $(echo "$key_pair_file_name" | xargs | awk '{print length}') -gt 255 ]; then
                 valid_name=0
                 echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE LONGER THAN 255 CHARACTERS.\n"
             fi
@@ -261,7 +261,7 @@ function request_key_pair_name() {
                 valid_name=0
 
                 # Inform user of illegal characters within provided name.
-                local illegal_chars=$(echo "$key_pair_file_name" | tr -cd '[^0-9a-zA-Z._-]')
+                local illegal_chars=$(echo "$key_pair_file_name" | awk -F '' '{for(i=1;i<=NF;i++) if ($i !~ /^[0-9a-zA-Z._-]$/) print $i}' | sort -u | tr -d '\n')
                 echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT CONTAIN ILLEGAL CHARACTERS."
                 echo -e "Illegal characters in provided name:"
                 for (( i=0; i<${#illegal_chars}; i++ )); do
