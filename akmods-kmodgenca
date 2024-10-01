@@ -28,9 +28,10 @@
 
 # EXIT STATUS CODES AND DESCRIPTIONS
 # 0 - SUCCESS
-# 1 - INVALID COMMAND LINE ARGUMENT
-# 2 - BROKEN EXISTING KEY PAIR
-# 3 - CA CERTIFICATE CONFIGURATION MODIFICATION FAILED
+# 1 - INSUFFICIENT PRIVILEGES
+# 2 - INVALID COMMAND LINE ARGUMENT
+# 3 - BROKEN EXISTING KEY PAIR
+# 4 - CA CERTIFICATE CONFIGURATION MODIFICATION FAILED
 
 # DECLARE CONSTANTS
 # Script Information
@@ -82,6 +83,15 @@ function help() {
     echo "  -h, --help           Display this help message."
     echo "  -V, --version        Display script version information."
     echo ""
+}
+
+function check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INSUFFICIENT PRIVILEGES!"
+        echo "Please run the command using 'sudo' or as root."
+        echo "Quitting."
+        exit 1
+    fi
 }
 
 function parse_arguments() {
@@ -139,7 +149,7 @@ function parse_arguments() {
     if [[ "$BAD_ARGS" -eq 1 ]]; then
         echo ""
         help >&2
-        exit 1
+        exit 2
     fi
 
     # Display script help information if requested.
@@ -199,7 +209,7 @@ function check_broken_key_pair() {
         echo "Quitting."
 
         # Exit script.
-        exit 2
+        exit 3
     fi
 }
 
@@ -333,7 +343,7 @@ function create_ca_cert_config() {
         echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} CACERT CONFIG FILE MODIFICATION FAILED."
         echo "Failed to update the CA certificate configuration file at '${CACERT_CONFIG_PATH}'."
         echo "Quitting."
-        exit 3
+        exit 4
     fi
 }
 
@@ -385,6 +395,9 @@ function update_key_symlinks() {
 }
 
 # SCRIPT MAINLINE
+# Check for elevated privileges.
+check_root
+
 # Parse any supplied arguments.
 parse_arguments "$@"
 
