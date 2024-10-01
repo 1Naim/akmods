@@ -35,7 +35,7 @@
 # DECLARE CONSTANTS
 # Script Information
 readonly SCRIPT_NAME="kmodgenca"
-readonly SCRIPT_VERSION="0.5.7"
+readonly SCRIPT_VERSION="0.6.0"
 
 # Directories
 readonly AKMODS_DIR="/etc/pki/akmods"
