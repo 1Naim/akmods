@@ -31,7 +31,16 @@
 # 1 - INSUFFICIENT PRIVILEGES
 # 2 - INVALID COMMAND LINE ARGUMENT
 # 3 - BROKEN EXISTING KEY PAIR
-# 4 - CA CERTIFICATE CONFIGURATION MODIFICATION FAILED
+# 4 - MISSING CACERT CONFIGURATION TEMPLATE
+# 5 - FAILED TO READ CA CERTIFICATE CONFIGURATION TEMPLATE
+# 6 - FAILED TO WRITE CA CERTIFICATE CONFIGURATION FILE
+# 7 - UNSUCCESSFUL OPENSSL KEY PAIR CREATION COMMAND
+# 8 - FAILED TO CREATE KEY PAIR FILES
+
+# ENFORCE STRICT ERROR HANDLING
+# - Exit script on error.
+# - Ensure pipelines fail on the first error.
+set -eo pipefail
 
 # DECLARE CONSTANTS
 # Script Information
@@ -53,6 +62,7 @@ readonly RESTORECON_PATH="/usr/sbin/restorecon"
 readonly BOLD_RED_TEXT="\e[1;31m"
 readonly BOLD_YELLOW_TEXT="\e[1;33m"
 readonly BOLD_GREEN_TEXT="\033[1;32m"
+readonly BOLD_BLUE_TEXT="\e[1;34m"
 readonly BOLD_GREY_TEXT="\e[1;37m"
 readonly CLEAR_TEXT="\e[0m"
 
@@ -86,69 +96,75 @@ function help() {
 }
 
 function check_root() {
+    # Notify user.
+    echo -e "${BOLD_BLUE_TEXT}INFO:${CLEAR_TEXT} CHECKING FOR ELEVATED PRIVILEGES..."
+
     if [ "$EUID" -ne 0 ]; then
-        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INSUFFICIENT PRIVILEGES!"
-        echo "Please run the command using 'sudo' or as root."
-        echo "Quitting."
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INSUFFICIENT PRIVILEGES!" >&2
+        echo "Please run the command using 'sudo' or as root." >&2
+        echo "Quitting." >&2
         exit 1
     fi
 }
 
 function parse_arguments() {
-    while [ "$1" ] ; do
-        case "$1" in
-        -a|--auto)
-            AUTOMATIC_BUILD=1
-            shift
-            ;;
-        -f|--force)
-            FORCE_BUILD=1
-            shift
-            ;;
-        -h|--help)
-            SHOW_HELP=1
-            shift
-            ;;
-        -V|--version)
-            SHOW_VER=1
-            shift
-            ;;
-        -*)
-            # Handle combined single-letter options.
-            for (( i=1; i<${#1}; i++ )); do
-                case "${1:$i:1}" in
-                a)
-                    AUTOMATIC_BUILD=1
-                    ;;
-                f)
-                    FORCE_BUILD=1
-                    ;;
-                h)
-                    SHOW_HELP=1
-                    ;;
-                V)
-                    SHOW_VER=1
-                    ;;
-                *)
-                    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1:$i:1}' in '${1}'." >&2
-                    BAD_ARGS=1
-                    ;;
-                esac
-            done
-            shift
-            ;;
-        *)
-            echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'." >&2
-            BAD_ARGS=1
-            shift
-            ;;
-        esac
-    done
+    if [ $# -gt 0 ]; then
+        while [ "$1" ] ; do
+            case "$1" in
+            -a|--auto)
+                AUTOMATIC_BUILD=1
+                shift
+                ;;
+            -f|--force)
+                FORCE_BUILD=1
+                shift
+                ;;
+            -h|--help)
+                SHOW_HELP=1
+                shift
+                ;;
+            -V|--version)
+                SHOW_VER=1
+                shift
+                ;;
+            -*)
+                # Handle combined single-letter options.
+                for (( i=1; i<${#1}; i++ )); do
+                    case "${1:$i:1}" in
+                    a)
+                        AUTOMATIC_BUILD=1
+                        ;;
+                    f)
+                        FORCE_BUILD=1
+                        ;;
+                    h)
+                        SHOW_HELP=1
+                        ;;
+                    V)
+                        SHOW_VER=1
+                        ;;
+                    *)
+                        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1:$i:1}' in '${1}'." >&2
+                        BAD_ARGS=1
+                        ;;
+                    esac
+                done
+                shift
+                ;;
+            *)
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} INVALID OPTION '${1}'." >&2
+                BAD_ARGS=1
+                shift
+                ;;
+            esac
+        done
+    fi
 
-    # Display help message and then exit in the event of invalid command line argument(s).
+    # Display help message and then exit in the event of invalid argument(s).
     if [[ "$BAD_ARGS" -eq 1 ]]; then
-        echo ""
+        echo "" >&2
         help >&2
+        echo "Quitting." >&2
         exit 2
     fi
 
@@ -159,28 +175,28 @@ function parse_arguments() {
 
     # Display script version information if requested.
     if [[ "$SHOW_VER" -eq 1 ]]; then
-        "${SCRIPT_NAME} v${SCRIPT_VERSION}"
+        echo "${SCRIPT_NAME} v${SCRIPT_VERSION}"
     fi
 
     # Exit script if version and/or help information requested.
     if [ "$SHOW_VER" -eq 1 ] || [ "$SHOW_HELP" -eq 1 ]; then
         if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
-            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING '-a' (--auto)."
+            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING '-a' (--auto)." >&2
         fi
         if [ "$FORCE_BUILD" -eq 1 ]; then
-            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING '-f' (--force)."
+            echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} IGNORING '-f' (--force)." >&2
         fi
         exit 0
     fi
 
     # Warn user regarding forced builds.
     if [[ "$FORCE_BUILD" -eq 1 ]]; then
-        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FORCED BUILD SELECTED. KEY PAIR OVERWRITE MAY OCCUR!"
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} FORCED BUILD SELECTED. KEY PAIR OVERWRITE MAY OCCUR!" >&2
     fi
 
     # Warn user regarding automatic builds.
     if [[ "$AUTOMATIC_BUILD" -eq 1 ]]; then
-        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} AUTOMATIC BUILD SELECTED. USING DEFAULT VALUES FOR CA/KEY PAIR CREATION."
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} AUTOMATIC BUILD SELECTED. USING DEFAULT VALUES FOR CA/KEY PAIR CREATION." >&2
     fi
 }
 
@@ -200,13 +216,13 @@ function check_broken_key_pair() {
 
     if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
         # Notify user.
-        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR."
-        echo "Both a public key and a private key must exist."
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR." >&2
+        echo "Both a public key and a private key must exist." >&2
 
         # Dynamic status output with colours.
-        echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
-        echo -e "    ${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )"
-        echo "Quitting."
+        echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )" >&2
+        echo -e "    ${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )" >&2
+        echo "Quitting." >&2
 
         # Exit script.
         exit 3
@@ -214,6 +230,9 @@ function check_broken_key_pair() {
 }
 
 function check_existing_key_pair() {
+    # Notify user.
+    echo -e "${BOLD_BLUE_TEXT}INFO:${CLEAR_TEXT} CHECKING FOR AN EXISTING KEY PAIR..."
+
     # Terminate the script when:
     #   1. Both a certificate (public key) and private key already exist, AND
     #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
@@ -225,39 +244,41 @@ function check_existing_key_pair() {
        [ "$FORCE_BUILD" -eq 0 ]; then
 
         # Notify user.
-        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR."
-        echo "Please specify argument '--force' to overwrite the existing key pair."
-        echo "Quitting."
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} EXISTING KEY PAIR." >&2
+        echo "Please specify argument '--force' to overwrite the existing key pair." >&2
+        echo "Quitting." >&2
 
         # Exit script.
         exit 0
     fi
 }
 
-function request_key_pair_name() {
+function set_key_pair_name() {
     if [ "$AUTOMATIC_BUILD" -eq 0 ]; then
         while true; do
             local key_pair_file_name=""
             local valid_name=1
 
+            # Request key pair name from user.
+            # shellcheck disable=SC2162
             read -p "Key Pair Name: " key_pair_file_name
 
             # Check for empty string.
             if [[ -z $(echo "$key_pair_file_name" | xargs) ]]; then
                 valid_name=0
-                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE EMPTY.\n"
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE EMPTY.\n" >&2
             fi
 
             # Ensure name is not '.' or '..'.
             if [[ $(echo "$key_pair_file_name" | xargs) == "." ]] || [[ $(echo "$key_pair_file_name" | xargs) == ".." ]]; then
                 valid_name=0
-                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE '.' OR '..'.\n"
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE '.' OR '..'.\n" >&2
             fi
 
             # Ensure name is not longer than 255 characters.
-            if [ $(echo "$key_pair_file_name" | xargs | awk '{print length}') -gt 255 ]; then
+            if [ "$(echo "$key_pair_file_name" | xargs | awk '{print length}')" -gt 255 ]; then
                 valid_name=0
-                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE LONGER THAN 255 CHARACTERS.\n"
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT BE LONGER THAN 255 CHARACTERS.\n" >&2
             fi
 
             # Ensure name only contains valid characters.
@@ -273,20 +294,21 @@ function request_key_pair_name() {
                     valid_name=0
 
                     # Inform user of illegal characters within provided name.
-                    local illegal_chars=$(echo "$key_pair_file_name" | awk -F '' '{for(i=1;i<=NF;i++) if ($i !~ /^[0-9a-zA-Z._-]$/) print $i}' | sort -u | tr -d '\n')
-                    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT CONTAIN ILLEGAL CHARACTERS."
-                    echo -e "Illegal characters in provided name:"
+                    local illegal_chars
+                    illegal_chars=$(echo "$key_pair_file_name" | awk -F '' '{for(i=1;i<=NF;i++) if ($i !~ /^[0-9a-zA-Z._-]$/) print $i}' | sort -u | tr -d '\n')
+                    echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} NAME MUST NOT CONTAIN ILLEGAL CHARACTERS." >&2
+                    echo -e "Illegal characters in provided name:" >&2
                     for (( i=0; i<${#illegal_chars}; i++ )); do
-                        echo "-    '${illegal_chars:i:1}'"
+                        echo "-    '${illegal_chars:i:1}'" >&2
                     done
-                    echo -e "\nPlease ensure the name only contains letters, numbers, periods, underscores and hyphens.\n"
+                    echo -e "\nPlease ensure the name only contains letters, numbers, periods, underscores and hyphens.\n" >&2
                 fi
             fi
 
             # Ensure key pair with same name does not exist.
             if [ -f "${PUBLIC_KEY_DIR}/${key_pair_file_name}.der" ] || [ -f "${PRIVATE_KEY_DIR}/${key_pair_file_name}.priv" ]; then
                 valid_name=0
-                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} EXISTING KEY PAIR WITH SAME NAME.\n"
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} EXISTING KEY PAIR WITH SAME NAME.\n" >&2
             fi
 
             # Break the loop if a valid name was provided.
@@ -297,58 +319,72 @@ function request_key_pair_name() {
 
         # Update global key pair name variable.
         KEYNAME="$key_pair_file_name"
+    else
+        # Handle the extremely unlikely occurrence of a key pair name conflict with an existing key pair.
+        while [ -f "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]; do
+            KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
+        done
     fi
 }
 
-function create_ca_cert_config() {
-    echo "UPDATING '${CACERT_CONFIG_PATH}'..."
+function create_cacert_config() {
+    # Notify user.
+    echo -e "${BOLD_BLUE_TEXT}INFO:${CLEAR_TEXT} UPDATING CACERT CONFIGURATION FILE AT '${CACERT_CONFIG_PATH}'..."
 
-    # Handle the extremely unlikely occurrence of a key pair name conflict with an existing key pair.
-    while [ -f "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]; do
-        KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
-    done
-
-    if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
-        # Set '-batch' argument.
-        AUTOMATIC_BUILD_OPTION="-batch"
-
-        # Initialise output variable.
+    # Check if the cacert configuration template exists.
+    if [[ -f "${CACERT_CONFIG_PATH}.in" ]]; then
         local sed_output=""
+        local sed_exit_status=0
 
-        # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
-        # Set OpenSSL field values.
-        # Comment default and min/max values.
-        # Note: Requires superuser permissions (i.e. sudo).
-        sed_output=$(sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
-            -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
-            -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
-            -e "s#\(localityName *= \).*#\1None#" \
-            -e "s#\(stateOrProvinceName *= \).*#\1None#" \
-            -e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
-            -e "s#\(commonName *= \).*#\1${KEYNAME}#" \
-            -e "s/^[^#]*_default *= /#&/" \
-            -e "s/^[^#]*_min/#&/" \
-            -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in" 2>&1 | tee "$CACERT_CONFIG_PATH" > /dev/null)
+        if [ "$AUTOMATIC_BUILD" -eq 1 ]; then
+            # Set '-batch' argument.
+            AUTOMATIC_BUILD_OPTION="-batch"
+
+            # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
+            # - Set OpenSSL field values.
+            # - Comment default and min/max values.
+            sed_output=$(sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
+                -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
+                -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
+                -e "s#\(localityName *= \).*#\1None#" \
+                -e "s#\(stateOrProvinceName *= \).*#\1None#" \
+                -e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
+                -e "s#\(commonName *= \).*#\1${KEYNAME}#" \
+                -e "s/^[^#]*_default *= /#&/" \
+                -e "s/^[^#]*_min/#&/" \
+                -e "s/^[^#]*_max/#&/" "${CACERT_CONFIG_PATH}.in")
+            sed_exit_status=$?
+        else
+            # Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
+            # Request OpenSSL prompt user for values later.
+            sed_output=$(sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in")
+            sed_exit_status=$?
+        fi
+
+        # Check if 'sed' command failed.
+        if [ "$sed_exit_status" -ne 0 ]; then
+            echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} FAILED TO READ CACERT CONFIGURATION TEMPLATE at '${CACERT_CONFIG_PATH}.in'." >&2
+            echo "Quitting." >&2
+            exit 5
+        else
+            # Note: Requires superuser permissions (i.e. sudo).
+            if ! echo "$sed_output" > "$CACERT_CONFIG_PATH"; then
+                echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} FAILED TO WRITE CACERT CONFIGURATION FILE to '${CACERT_CONFIG_PATH}'." >&2
+                echo "Quitting." >&2
+                exit 6
+            fi
+        fi
     else
-        # Request user enter values manually if 'AUTOMATIC_BUILD' is equal to '0'.
-        # Request OpenSSL prompt user for values later.
-        # Note: Requires superuser permissions (i.e. sudo).
-        sed_output=$(sed -e "s#\(prompt *= \).*#\1yes#" "${CACERT_CONFIG_PATH}.in" | tee "$CACERT_CONFIG_PATH" > /dev/null)
-    fi
-
-    # Check if 'sed' command failed.
-    # shellcheck disable=SC2181
-    if [ "$?" -ne 0 ]; then
-        echo "$sed_output"
-        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} CACERT CONFIG FILE MODIFICATION FAILED."
-        echo "Failed to update the CA certificate configuration file at '${CACERT_CONFIG_PATH}'."
-        echo "Quitting."
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} MISSING CACERT CONFIGURATION TEMPLATE!" >&2
+        echo "Failed to locate the CAcert configuration template at '${CACERT_CONFIG_PATH}.in'." >&2
+        echo "Quitting." >&2
         exit 4
     fi
 }
 
 function create_new_key_pair() {
-    echo "CREATING NEW KEY PAIR..."
+    # Notify user.
+    echo -e "${BOLD_BLUE_TEXT}INFO:${CLEAR_TEXT} CREATING NEW KEY PAIR..."
 
     # Prepare an OpenSSL command to generate the key pair.
     local key_pair_generation_command=(
@@ -369,10 +405,26 @@ function create_new_key_pair() {
     # Execute the key pair generation command within the 'akmods' group context.
     # Ensure 'rw-rwx---' permissions.
     # Note: Requires superuser permissions (i.e. sudo).
-    sg akmods -c "umask 037 && ${key_pair_generation_command[*]}"
+    if sg akmods -c "umask 037 && ${key_pair_generation_command[*]}"; then
+        # Check if both a public and a private key file were created.
+        if [[ ! -f "${PUBLIC_KEY_DIR}/${KEYNAME}.der" || ! -f "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" ]]; then
+            echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} KEY PAIR CREATION FAILED!" >&2
+            echo "The OpenSSL key pair generation command ran, but key files were not created." >&2
+            echo "Quitting." >&2
+            exit 8
+        fi
+    else
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} KEY PAIR CREATION FAILED!" >&2
+        echo "The OpenSSL key pair generation command did not complete successfully." >&2
+        echo "Quitting." >&2
+        exit 7
+    fi
 }
 
 function set_key_permissions() {
+    # Notify user.
+    echo -e "${BOLD_BLUE_TEXT}INFO:${CLEAR_TEXT} SETTING KEY PAIR PERMISSIONS..."
+
     # Ensure that akmods group can read keys.
     # Note: Requires superuser permissions (i.e. sudo).
     chmod g+r "${PUBLIC_KEY_DIR}/${KEYNAME}.der"
@@ -387,6 +439,9 @@ function set_key_permissions() {
 }
 
 function update_key_symlinks() {
+    # Notify user.
+    echo -e "${BOLD_BLUE_TEXT}INFO:${CLEAR_TEXT} UPDATING KEY PAIR SYMLINKS..."
+
     # Note: Requires superuser permissions (i.e. sudo).
     ln -nsf "${PUBLIC_KEY_DIR}/${KEYNAME}.der" "$PUBLIC_KEY_PATH"
     ln -nsf "${PRIVATE_KEY_DIR}/${KEYNAME}.priv" "$PRIVATE_KEY_PATH"
@@ -395,11 +450,11 @@ function update_key_symlinks() {
 }
 
 # SCRIPT MAINLINE
-# Check for elevated privileges.
-check_root
-
 # Parse any supplied arguments.
 parse_arguments "$@"
+
+# Check for elevated privileges.
+check_root
 
 # Check for broken key pairs.
 check_broken_key_pair
@@ -407,11 +462,11 @@ check_broken_key_pair
 # Check for existing key pair.
 check_existing_key_pair
 
-# Request user for key pair name.
-request_key_pair_name
+# Set key pair name.
+set_key_pair_name
 
 # Create 'cacert.config' using template file 'cacert.config.in'.
-create_ca_cert_config
+create_cacert_config
 
 # Create new key pair.
 create_new_key_pair
@@ -427,8 +482,8 @@ echo -e "\n${BOLD_GREEN_TEXT}SUCCESS!${CLEAR_TEXT}"
 echo "Public Key (Certificate) created at:    ${PUBLIC_KEY_DIR}/${KEYNAME}.der"
 echo "Private Key created at:                 ${PRIVATE_KEY_DIR}/${KEYNAME}.priv"
 echo -e "\nSymlinks:"
-echo "${KEYNAME}.der     -->    ${PUBLIC_KEY_PATH}"
-echo "${KEYNAME}.priv    -->    ${PRIVATE_KEY_PATH}"
+echo "${KEYNAME}.der  -> ${PUBLIC_KEY_PATH}"
+echo "${KEYNAME}.priv -> ${PRIVATE_KEY_PATH}"
 
 # Exit script.
 exit 0
