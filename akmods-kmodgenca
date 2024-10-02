@@ -30,7 +30,7 @@
 # 0 - SUCCESS
 # 1 - INSUFFICIENT PRIVILEGES
 # 2 - INVALID COMMAND LINE ARGUMENT
-# 3 - BROKEN EXISTING KEY PAIR
+# 3 - BROKEN SYMLINKS TO DEFAULT KEY PAIR
 # 4 - MISSING CACERT CONFIGURATION TEMPLATE
 # 5 - FAILED TO READ CA CERTIFICATE CONFIGURATION TEMPLATE
 # 6 - FAILED TO WRITE CA CERTIFICATE CONFIGURATION FILE
@@ -201,11 +201,101 @@ function parse_arguments() {
 }
 
 function check_broken_key_pair() {
+    # Check for broken non-selected key pairs.
+    local unmatched_public_key_paths=()
+    local unmatched_private_key_paths=()
+
+    # Store paths of public and private keys.
+    local public_key_paths=()
+    local private_key_paths=()
+    # Note: Requires superuser permissions (i.e., sudo).
+    mapfile -t public_key_paths < <(find "$PUBLIC_KEY_DIR" -maxdepth 1 -name "*.der")
+    mapfile -t private_key_paths < <(find "$PRIVATE_KEY_DIR" -maxdepth 1 -name "*.priv")
+
+    # Find public/private keys without corresponding private/public keys.
+    local key_file_path
+    for key_file_path in "${public_key_paths[@]}"; do
+        # Skip symlink.
+        if [[ "$key_file_path" == "$PUBLIC_KEY_PATH" ]]; then
+            continue
+        fi
+
+        # Remove file extension.
+        local public_key_name
+        public_key_name="$(basename "$key_file_path")"
+        public_key_name="${public_key_name%.*}"
+
+        # Check if the corresponding private key exists.
+        local found=0
+        for private_key_path in "${private_key_paths[@]}"; do
+            if [[ "$private_key_path" == "${PRIVATE_KEY_DIR}/${public_key_name}.priv" ]]; then
+                found=1
+                break
+            fi
+        done
+
+        # Store public key file name (with extension) if unpaired.
+        if [[ "$found" -eq 0 ]]; then
+            unmatched_public_key_paths+=("$key_file_path")
+        fi
+    done
+
+    for key_file_path in "${private_key_paths[@]}"; do
+        # Skip symlink.
+        if [[ "$key_file_path" == "$PRIVATE_KEY_PATH" ]]; then
+            continue
+        fi
+
+        # Remove file extension.
+        local private_key_name
+        private_key_name="$(basename "$key_file_path")"
+        private_key_name="${private_key_name%.*}"
+
+        # Check if the corresponding public key exists.
+        local found=0
+        for public_key_path in "${public_key_paths[@]}"; do
+            if [[ "$public_key_path" == "${PUBLIC_KEY_DIR}/${private_key_name}.der" ]]; then
+                found=1
+                break
+            fi
+        done
+
+        # Store private key file name (with extension) if unpaired.
+        if [[ "$found" -eq 0 ]]; then
+            unmatched_private_key_paths+=("$key_file_path")
+        fi
+    done
+
+    # Check if isolated keys were detected.
+    if [[ ${#unmatched_private_key_paths[@]} -gt 0 || ${#unmatched_public_key_paths[@]} -gt 0 ]]; then
+        echo -e "${BOLD_YELLOW_TEXT}WARNING:${CLEAR_TEXT} SOME KEY PAIRS ARE BROKEN!" >&2
+
+        # Notify user regarding isolated public keys.
+        if [[ ${#unmatched_public_key_paths[@]} -gt 0 ]]; then
+            echo "Isolated Public Keys:" >&2
+            local isolated_pub_key_path
+            for isolated_pub_key_path in "${unmatched_public_key_paths[@]}"; do
+                echo "    ${isolated_pub_key_path}" >&2
+            done
+            echo "" >&2
+        fi
+
+        # Notify user regarding isolated private keys.
+        if [[ ${#unmatched_private_key_paths[@]} -gt 0 ]]; then
+            echo "Isolated Private Keys:" >&2
+            local isolated_pri_key_path
+            for isolated_pri_key_path in "${unmatched_private_key_paths[@]}"; do
+                echo "    ${isolated_pri_key_path}" >&2
+            done
+            echo "" >&2
+        fi
+    fi
+
     # Terminate the script when:
     #   1. A certificate (public key) OR private key exists (but not both), AND
     #   2. A forced rebuild was not requested (i.e., 'FORCE_BUILD' is NOT '1')
 
-    # Note: This approach will also detect broken symlinks (i.e., return 0).
+    # Check for broken symlinks to the currently selected pair of keys.
     # Note: Requires superuser permissions (i.e. sudo).
     # shellcheck disable=SC2155
     local pub_key_exists=$(readlink -e "$PUBLIC_KEY_PATH" &>/dev/null && echo 1 || echo 0)
@@ -216,12 +306,14 @@ function check_broken_key_pair() {
 
     if [[ "$pub_key_exists" -ne "$pri_key_exists" && "$FORCE_BUILD" -eq 0 ]]; then
         # Notify user.
-        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN EXISTING KEY PAIR." >&2
-        echo "Both a public key and a private key must exist." >&2
+        echo -e "${BOLD_RED_TEXT}ERROR:${CLEAR_TEXT} BROKEN SYMLINK(S) TO THE DEFAULT KEY PAIR!" >&2
+        echo "Valid symlinks to a public and private key must exist." >&2
+        echo "" >&2
 
         # Dynamic status output with colours.
-        echo -e "    ${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )" >&2
-        echo -e "    ${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}PRESENT${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}MISSING${CLEAR_TEXT}" )" >&2
+        echo -e "${PUBLIC_KEY_PATH}: $( [[ $pub_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}WORKING${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}BROKEN${CLEAR_TEXT}" )" >&2
+        echo -e "${PRIVATE_KEY_PATH}: $( [[ $pri_key_exists -eq 1 ]] && echo -e "${BOLD_GREEN_TEXT}WORKING${CLEAR_TEXT}" || echo -e "${BOLD_RED_TEXT}BROKEN${CLEAR_TEXT}" )" >&2
+        echo "" >&2
         echo "Quitting." >&2
 
         # Exit script.
