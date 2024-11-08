@@ -75,7 +75,8 @@ SHOW_VER=0
 BAD_ARGS=0
 
 # Unique New Key Pair Name (Hostname + UNIX/POSIX Timestamp + Dashless UUID)
-KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
+cert_hostname="$(hostname)"
+KEYNAME="${cert_hostname:0:44}_$(date +%s)_$(uuidgen | awk -F '-' '{print $1}')"
 
 # Other
 AUTOMATIC_BUILD_OPTION=""
@@ -414,7 +415,7 @@ function set_key_pair_name() {
     else
         # Handle the extremely unlikely occurrence of a key pair name conflict with an existing key pair.
         while [ -f "${PUBLIC_KEY_DIR}/${KEYNAME}.der" ]; do
-            KEYNAME="$(hostname)_$(date +%s)_$(uuidgen | tr -d '-')"
+            KEYNAME="${cert_hostname:0:44}_$(date +%s)_$(uuidgen | awk -F '-' '{print $1}')"
         done
     fi
 }
