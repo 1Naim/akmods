@@ -261,6 +261,10 @@ check_default_kernel()
 		# Leave jq as optional - isDefault requires systemd 253
 		if command -v jq >/dev/null ; then
 			default_kernel="$(bootctl list  --json=short | jq -r '.[] | select(.isDefault).version')"
+			# Validate the result or discard - rhbz#2270414
+			if [[ ! -f /boot/vmlinuz-"${default_kernel}" ]] ; then
+				default_kernel=""
+			fi
 		fi
 	else # They use neither systemd-boot nor grub2
 		echo -n "Unable to figure out the default kernel" >&2
