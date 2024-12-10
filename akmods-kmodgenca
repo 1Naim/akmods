@@ -75,7 +75,7 @@ SHOW_VER=0
 BAD_ARGS=0
 
 # Unique New Key Pair Name (Hostname + UNIX/POSIX Timestamp + Dashless UUID)
-cert_hostname="$(hostname)"
+cert_hostname="${HOSTNAME}"
 KEYNAME="${cert_hostname:0:44}_$(date +%s)_$(uuidgen | awk -F '-' '{print $1}')"
 
 # Other
