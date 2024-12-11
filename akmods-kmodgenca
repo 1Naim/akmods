@@ -436,9 +436,9 @@ function create_cacert_config() {
             # Utilise default values if 'AUTOMATIC_BUILD' is equal to '1'.
             # - Set OpenSSL field values.
             # - Comment default and min/max values.
-            sed_output=$(sed -e "s#\(0.organizationName *= \).*#\1$(hostname)#" \
-                -e "s#\(organizationalUnitName *= \).*#\1$(hostname)#" \
-                -e "s#\(emailAddress *= \).*#\1akmods@$(hostname)#" \
+            sed_output=$(sed -e "s#\(0.organizationName *= \).*#\1${cert_hostname}#" \
+                -e "s#\(organizationalUnitName *= \).*#\1${cert_hostname}#" \
+                -e "s#\(emailAddress *= \).*#\1akmods@${cert_hostname}#" \
                 -e "s#\(localityName *= \).*#\1None#" \
                 -e "s#\(stateOrProvinceName *= \).*#\1None#" \
                 -e "s#\(countryName *= \).*#\1$(locale country_ab2)#" \
