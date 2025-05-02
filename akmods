@@ -47,6 +47,39 @@ verboselevel=2
 # So we always retry anyway
 alwaystry=1
 
+# Check Running plymouth
+no_plymouth=1
+last_message=""
+
+function check_plymouth() {
+	which plymouth > /dev/null 2> /dev/null
+	if [[ $? -eq 1 ]]
+	then
+		no_plymouth=1
+		return 0
+	fi
+
+	plymouth --ping
+	no_plymouth=$?
+}
+
+# new or del, msg
+akmods_echo_plymouth(){
+	if [[ $no_plymouth -eq 0 ]]
+	then
+		if [[ $1 -eq 1 ]]
+		then
+			plymouth display-message --text="$2"
+			last_message=$2
+		else
+			if [ -z "${last_message}" ]; then
+				plymouth hide-message --text="$last_message" &
+				last_message=""
+			fi
+		fi
+	fi
+}
+
 akmods_echo()
 {
 	# where to output
@@ -331,6 +364,7 @@ buildinstall_kmod()
 	unset TMPDIR
 
 	# build module using akmod
+	akmods_echo_plymouth 1 "akmod: Building ${this_kmodsrpm}..."
 	akmods_echo 1 4 "Building RPM using the command '/usr/sbin/akmodsbuild --kernels ${this_kernelver} ${this_kmodsrpm}'"
 	/sbin/runuser -s /bin/bash -c "/usr/sbin/akmodsbuild --quiet --kernels ${this_kernelver} --outputdir ${tmpdir}results --logfile ${tmpdir}/akmodsbuild.log ${this_kmodsrpm}" akmods >> "${kmodlogfile}" 2>&1
 	local returncode=$?
@@ -345,6 +379,10 @@ buildinstall_kmod()
 		if [[ -n "${continue_line}" ]] ; then
 			akmods_echo 1 2 --failure
 		fi
+
+		akmods_echo_plymouth 0 ""
+		akmods_echo_plymouth 1 "akmod: Building ${this_kmodsrpm} failed!"
+		sleep 5
 		akmods_echo 2 1 "Building rpms failed; see /var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}.failed.log for details"
 		cp -fl "${kmodlogfile}" "/var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}.failed.log"
 		kmodlogfile=""
@@ -353,6 +391,9 @@ buildinstall_kmod()
 	fi
 
 	# dnf/yum install - repository disabled on purpose see rfbz#3350
+
+	akmods_echo_plymouth 0 ""
+	akmods_echo_plymouth 1 "akmod: Installing ${this_kmodsrpm}..."
 	akmods_echo 1 4 "Installing newly built rpms"
 	if [[ -f /usr/bin/dnf ]] ; then
 		akmods_echo 1 4 "DNF detected"
@@ -371,6 +412,10 @@ buildinstall_kmod()
 		if [[ -n "${continue_line}" ]] ; then
 			akmods_echo 1 2 --failure
 		fi
+
+		akmods_echo_plymouth 0 ""
+		akmods_echo_plymouth 1 "akmod: Installing ${this_kmodsrpm} failed!"
+		sleep 5
 		akmods_echo 2 1 "Could not install newly built RPMs. You can find them and the logfile in:"
 		akmods_echo 2 1 "/var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}.failed.log"
 		cp -fl "${kmodlogfile}" "/var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}.failed.log"
@@ -384,6 +429,8 @@ buildinstall_kmod()
 	cp -fl "${kmodlogfile}" "/var/cache/akmods/${this_kmodname}/${this_kmodverrel}-for-${this_kernelver}.log"
 	kmodlogfile=""
 	remove_tmpdir
+
+	akmods_echo_plymouth 0 ""
 
 	return 0
 }
@@ -629,6 +676,7 @@ while [ "${1}" ] ; do
 	esac
 done
 
+check_plymouth
 # sanity checks
 init
 
