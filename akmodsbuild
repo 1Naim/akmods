@@ -64,7 +64,7 @@ init ()
 
 	# SRPMS available?
 	for srpm in ${srpms}; do
-		if [[ ! -r ${srpm} ]] ; then
+		if [[ ! -r "${srpm}" ]] ; then
 			echo "ERROR: Can't find SRPM ${srpm}"
 			exit 1
 		fi
@@ -81,19 +81,19 @@ init ()
 
 
 	# make sure this is a number
-	if ! (( ${numberofjobs} > 0 )) ; then
+	if ! (( numberofjobs > 0 )) ; then
 		echo "Warning: using hardcoded defaut value for number of jobs"
 		numberofjobs=2
 	fi
 
 	## preparations
 	# tmpdir
-	if ! tmpdir="$(mktemp -d -p /tmp ${myprog}.XXXXXXXX)" ; then
+	if ! tmpdir="$(mktemp -d -p /tmp "${myprog}.XXXXXXXX")" ; then
 		echo "ERROR: Could create tempdir."
 		exit 1
 	fi
 
-	# buildtreee
+	# buildtree
 	mkdir "${tmpdir}"/{BUILD,SOURCES,SPECS,SRPMS,RPMS,RPMS/"${target}"}
 
 	# logfile
@@ -101,7 +101,7 @@ init ()
 		logfile="${tmpdir}/logfile"
 	fi
 
-	if ( [[ -e "${logfile}" ]] && [[ ! -w "${logfile}" ]] ) || ! touch "${logfile}" ; then
+	if { [[ -e "${logfile}" ]] && [[ ! -w "${logfile}" ]] ; } || ! touch "${logfile}" ; then
 		echo "ERROR: Could not write logfile."
 		finally
 		exit 1
@@ -143,12 +143,12 @@ akmods_echo()
 	fi
 
 	# output to console
-	if (( ${verboselevel} >= ${this_verbose} )) ; then
-		echo "$@" >&${this_fd}
+	if (( verboselevel >= this_verbose )) ; then
+		echo "$@" >&"${this_fd}"
 	fi
 
 	# global logfile
-	if [[ ! -n ${notlogfile} ]] ; then
+	if [[ ! -n "${notlogfile}" ]] ; then
 		echo "$@" >> "${logfile}"
 	fi
 }
@@ -159,8 +159,8 @@ watch_rpmbuild()
 	# background function to show rpmbuild progress
 	# does't use akmods_echo here; this stage handles the output on its own
 	# (seperate process and there is no need to log this)
-	if (( ${verboselevel} == 2 )) ; then
-		tail --pid ${1} -n +1 -s 0.1 -f ${2} 2>/dev/null | grep --line-buffered -e '%prep' -e '%build' -e '%install' -e '%clean' | while read line ; do
+	if (( verboselevel == 2 )) ; then
+		tail --pid "${1}" -n +1 -s 0.1 -f "${2}" 2>/dev/null | grep --line-buffered -e '%prep' -e '%build' -e '%install' -e '%clean' | while read -r line ; do
 			if [[ "${line}" != "${line##*prep}" ]] ; then
 				echo -n "prep "
 			elif [[ "${line}" != "${line##*build}" ]] ; then
@@ -172,8 +172,8 @@ watch_rpmbuild()
 				# last linefeed is done by the caller
 			fi
 		done
-	elif (( ${verboselevel} > 2 )) ; then
-		tail --pid ${1} -n +1 -s 0.1 -f ${2}
+	elif (( verboselevel > 2 )) ; then
+		tail --pid "${1}" -n +1 -s 0.1 -f "${2}"
 	fi
 }
 
@@ -194,31 +194,32 @@ process_srpm()
 		--define "_rpmdir     ${tmpdir}/RPMS" \
 		--define "_smp_mflags -j${numberofjobs}" \
 		--define "kernels     ${kernels}" \
-		--target ${target} \
+		--target "${target}" \
 		--rebuild "${source_rpm}" 2>&1 | tee -a "${logfile}" > "${tmpdir}/.joblog"  &
 
 	local rpmbuild_jobid=$!
 
 	# show progress
-	if (( ${verboselevel} >= 2 )) ; then
-		watch_rpmbuild ${rpmbuild_jobid} "${tmpdir}/.joblog" 2> /dev/null &
+	if (( verboselevel >= 2 )) ; then
+		watch_rpmbuild "${rpmbuild_jobid}" "${tmpdir}/.joblog" 2> /dev/null &
 		local watch_jobid=$!
 	fi
 
 	# wait for rpmbuild
-	wait ${rpmbuild_jobid}
-	local rpmbuild_returncode=$(tail -n 1 "${tmpdir}/.jobexit")
+	wait "${rpmbuild_jobid}"
+	local rpmbuild_returncode
+	rpmbuild_returncode=$(tail -n 1 "${tmpdir}/.jobexit")
 	unset rpmbuild_jobid
 
 	# give watch_rpmbuild a moment to catch up; kill it if it does not
-	if (( ${verboselevel} >= 2 )) ; then
+	if (( verboselevel >= 2 )) ; then
 		sleep 0.5
-		kill ${watch_jobid} &> /dev/null
+		kill "${watch_jobid}" &> /dev/null
 		unset watch_jobid
 	fi
 
 	# did rpmbuild succeed?
-	if (( ${rpmbuild_returncode} != 0 )) ; then
+	if (( rpmbuild_returncode != 0 )) ; then
 		# linefeed:
 		akmods_echo 1 2 ""
 
@@ -226,15 +227,16 @@ process_srpm()
 		akmods_echo 2 2 --not-logfile "--- "
 		tail -n 35 "${tmpdir}/.joblog" >&2
 		akmods_echo 2 2  --not-logfile "---"
-		return ${rpmbuild_returncode}
+		return "${rpmbuild_returncode}"
 	fi
 
 	# finish status for watch_rpmbuild
-	if (( ${verboselevel} >= 2 )) ; then
-		akmods_echo 1 2 -n "Successfull; "
+	if (( verboselevel >= 2 )) ; then
+		akmods_echo 1 2 -n "Successful; "
 	fi
 
-	local rpms_built="$(cd "${tmpdir}"/RPMS/"${target}" ; echo *)"
+	local rpms_built
+	rpms_built="$(cd "${tmpdir}"/RPMS/"${target}" || exit ; echo *)"
 
 	if ! mv "${tmpdir}/RPMS/${target}/"* "${outputdir}" ; then
 		# linefeed:
@@ -244,11 +246,11 @@ process_srpm()
 		return 128
 	fi
 
-	if (( ${verboselevel} == 1 )) ; then
+	if (( verboselevel == 1 )) ; then
 		for rpm in ${rpms_built}; do
 			echo "${outputdir%%/}/${rpm}"
 		done
-	elif (( ${verboselevel} >= 2 )) ; then
+	elif (( verboselevel >= 2 )) ; then
 		akmods_echo 1 2  "Saved ${rpms_built} in ${outputdir%%/}/"
 	fi
 
@@ -311,11 +313,11 @@ while [ "${1}" ] ; do
 			shift
 			;;
 		-v|--verbose)
-			let verboselevel++
+			(( verboselevel++ ))
 			shift
 			;;
 		-q|--quiet)
-			let verboselevel--
+			(( verboselevel-- ))
 			shift
 			;;
 		-h|--help)
@@ -343,12 +345,12 @@ init
 
 # go
 for srpm in ${srpms}; do
-	process_srpm ${srpm}
+	process_srpm "${srpm}"
 	returncode=$?
 
-	if (( ${returncode} != 0 )) ; then
+	if (( returncode != 0 )) ; then
 		finally
-		exit ${returncode}
+		exit "${returncode}"
 	fi
 done
 

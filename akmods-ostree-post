@@ -43,7 +43,7 @@ finally()
 	# remove tmpfiles
 	remove_tmpdir
 
-	exit ${1:-128}
+	exit "${1:-128}"
 }
 
 # Make sure finally() is run regardless of reason for exiting.
@@ -51,7 +51,7 @@ trap "finally" ABRT HUP INT QUIT
 
 create_tmpdir()
 {
-	if ! tmpdir="$(mktemp -d -p /tmp ${myprog}.XXXXXXXX)/" ; then
+	if ! tmpdir="$(mktemp -d -p /tmp "${myprog}.XXXXXXXX")/" ; then
 		echo "ERROR: failed to create tmpdir." >&2
 		finally 1
 	fi
@@ -79,24 +79,24 @@ for kernel in ${kernels} ; do
 	echo "Building ${srpm} for kernel ${kernel}"
 	# Note: This builds as root, but this is pretty safe because its happening in the ostree %post sandbox.
 	#       In fact, given that /usr is a rofiles-fuse mount no other user can access /usr in this sandbox anyway.
-	akmodsbuild --quiet --kernels ${kernel} --outputdir ${tmpdir}results --logfile "${tmpdir}/akmodsbuild.log" "${srpm}"  2>&1
+	akmodsbuild --quiet --kernels "${kernel}" --outputdir "${tmpdir}results" --logfile "${tmpdir}/akmodsbuild.log" "${srpm}"  2>&1
 	returncode=$?
-	if (( ! ${returncode} == 0 )); then
+	if (( returncode != 0 )); then
 		finally 1
 	fi
 done
 
 for f in $(find "${tmpdir}results" -type f -name '*.rpm' | grep -v debuginfo) ; do
-	rpm2cpio $f | cpio --quiet  -D / -id
+	rpm2cpio "${f}" | cpio --quiet  -D / -id
 	returncode=$?
-	if (( ! ${returncode} == 0 )); then
+	if (( returncode != 0 )); then
 		echo "Extracting $f failed:" 2>&1
 		finally 1
 	fi
 done
 
 for kernel in ${kernels} ; do
-   depmod -v ${kernel} 2>&1
+   depmod -v "${kernel}" 2>&1
 done
 
 finally 0
