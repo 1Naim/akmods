@@ -310,7 +310,7 @@ check_default_kernel()
 	fi
 
 	for _kernel in ${_kernels} ; do
-		if [[ $(check_kernel_devel "${_kernel}" == 0) ]] ; then
+		if check_kernel_devel "${_kernel}" ; then
 			kernels="${kernels} ${_kernel}"
 		fi
 	done
@@ -605,7 +605,7 @@ while [ "${1}" ] ; do
 				exit 1
 			fi
 
-			if [[ $(check_kernel_devel "${1}" != 0) ]] ; then
+			if ! check_kernel_devel "${1}" ; then
 				echo "ERROR: kernel or kernel-devel required for ${1}" >&2
 				exit 1
 			fi
