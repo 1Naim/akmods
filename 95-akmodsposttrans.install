@@ -41,19 +41,13 @@ fi
 
 case "${COMMAND}" in
 	add)
-		# needs to run in background as rpmdb might be locked otherwise
-		if [ -e /bin/systemctl ] ; then
-			# Exit early if system-update.target is active - rhbz#1518401
-			/bin/systemctl is-active system-update.target &>/dev/null
-			RET=$?
+		# Exit early if system-update.target is active - rhbz#1518401
+		/bin/systemctl is-active system-update.target &>/dev/null
+		RET=$?
 
-			[[ $RET == 0 ]] && exit 0
+		[[ $RET == 0 ]] && exit 0
 
-			/bin/systemctl restart "akmods@${KERNEL_VERSION}.service" --no-block >/dev/null 2>&1
-		else
-			nohup /usr/sbin/akmods --from-kernel-posttrans --kernels "${KERNEL_VERSION}" > /dev/null 2>&1 &
-		fi
-		exit 0
+		/bin/systemctl restart "akmods@${KERNEL_VERSION}.service" --no-block >/dev/null 2>&1
 		;;
 	remove)
 		# Nothing to do
