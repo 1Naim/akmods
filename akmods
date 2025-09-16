@@ -196,11 +196,6 @@ init ()
 	UMASK=022
 	umask ${UMASK}
 
-	# fall back to current kernel if user didn't provide one
-	if [[ ! -n "${kernels}" ]] ; then
-		kernels="$(uname -r)"
-	fi
-
 	# we get the echo_{success,failure} stuff from there
 	if [[ -r /etc/rc.d/init.d/functions ]] ; then
 		source /etc/rc.d/init.d/functions
