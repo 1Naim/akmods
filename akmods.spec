@@ -33,9 +33,6 @@ BuildArch:      noarch
 BuildRequires:  help2man
 
 # not picked up automatically
-%if 0%{?rhel} == 6
-Requires:       %{_bindir}/nohup
-%endif
 Requires:       %{_bindir}/flock
 Requires:       %{_bindir}/time
 
