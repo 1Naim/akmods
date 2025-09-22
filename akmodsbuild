@@ -89,6 +89,15 @@ init ()
 		exit 1
 	fi
 
+	if [ -z "${target}" ] ; then
+		case "${kernels}" in
+			*x86_64_v4) target=x86_64_v4;;
+			*x86_64_v3) target=x86_64_v3;;
+			*x86_64_v2) target=x86_64_v2;;
+			*armv7hl) target=armv7hl;;
+			*) target="$(uname -m)" ;;
+		esac
+	fi
 	# buildtree
 	mkdir "${tmpdir}"/{BUILD,SOURCES,SPECS,SRPMS,RPMS,RPMS/"${target}"}
 
