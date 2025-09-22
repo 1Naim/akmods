@@ -1,7 +1,7 @@
 [Unit]
 Description=Builds and install new kmods from akmod packages
 ConditionPathExists=!/run/ostree-booted
-Before=@SERVICE@
+Before=display-manager.service
 After=akmods-keygen.target
 Wants=akmods-keygen.target
 
