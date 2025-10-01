@@ -46,6 +46,6 @@ below.
 
 You can confirm the enrollment of the new keypair once the system
 rebooted with:
- `mokutil --list-enrolled | grep Issuer`
+ `mokutil --list-enrolled
 or with:
  `mokutil --test-key /etc/pki/akmods/certs/public_key.der`
